@@ -10,7 +10,12 @@ import (
 	"time"
 )
 
-var ErrChallengeFailed = errors.New("flare: challenge failed")
+const (
+	DefaultURL     = "http://localhost:8191/v1"
+	DefaultTimeout = 180 * time.Second
+)
+
+var ErrSolverFault = errors.New("flare-solver")
 
 type Cookie struct {
 	Name  string `json:"name"`
@@ -45,13 +50,11 @@ type Solver struct {
 	client  *http.Client
 }
 
-func New(url string) *Solver {
+func NewSolver() *Solver {
 	return &Solver{
-		url:     url,
-		timeout: 180 * time.Second,
-		client: &http.Client{
-			Timeout: 180 * time.Second,
-		},
+		url:     DefaultURL,
+		timeout: DefaultTimeout,
+		client:  &http.Client{Timeout: DefaultTimeout},
 	}
 }
 
@@ -63,33 +66,37 @@ func (s *Solver) GetCookies(ctx context.Context, targetURL string) (*Result, err
 		MaxTimeout: s.timeout.Milliseconds(),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("%w: marshal request: %v", ErrChallengeFailed, err)
+		return nil, fmt.Errorf("%w: request marshal: %v", ErrSolverFault, err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.url, &body)
 	if err != nil {
-		return nil, fmt.Errorf("%w: build request: %v", ErrChallengeFailed, err)
+		return nil, fmt.Errorf("%w: build request: %v", ErrSolverFault, err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := s.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("%w: http call: %v", ErrChallengeFailed, err)
+		if errors.Is(err, context.DeadlineExceeded) ||
+			errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return nil, fmt.Errorf("%w: http timeout", ErrSolverFault)
+		}
+		return nil, fmt.Errorf("%w: network call: %v", ErrSolverFault, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%w: bad status %d", ErrChallengeFailed, resp.StatusCode)
+		return nil, fmt.Errorf("%w: status code %d", ErrSolverFault, resp.StatusCode)
 	}
 
 	var solveResp solveResponse
 	if err := json.NewDecoder(resp.Body).Decode(&solveResp); err != nil {
-		return nil, fmt.Errorf("%w: decode response: %v", ErrChallengeFailed, err)
+		return nil, fmt.Errorf("%w: response decode: %v", ErrSolverFault, err)
 	}
 
 	if solveResp.Status != "ok" {
-		return nil, fmt.Errorf("%w: %s", ErrChallengeFailed, solveResp.Message)
+		return nil, fmt.Errorf("%w: target site failure: %s", ErrSolverFault, solveResp.Message)
 	}
 
 	return &Result{
