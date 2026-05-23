@@ -1,3 +1,5 @@
 module github.com/0xrinful/Zenq
 
 go 1.26.2
+
+require github.com/lmittmann/tint v1.1.3 // indirect
