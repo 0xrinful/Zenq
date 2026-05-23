@@ -12,6 +12,8 @@ import (
 	"github.com/0xrinful/Zenq/internal/sources"
 )
 
+const defaultUserAgent = "Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0"
+
 type RequestMode int
 
 const (
@@ -56,8 +58,10 @@ func (r *Requester) Do(
 	url string,
 	opts RequestOptions,
 ) (*http.Response, error) {
-	if err := r.ensureSession(ctx, url); err != nil {
-		return nil, err
+	if r.config.NeedsFlare {
+		if err := r.ensureSession(ctx, url); err != nil {
+			return nil, err
+		}
 	}
 
 	switch opts.Mode {
@@ -94,12 +98,9 @@ func (r *Requester) doImage(
 	url string,
 	opts RequestOptions,
 ) (*http.Response, error) {
-	var resp *http.Response
-	var err error
-
 	// retry up to 3 times with backoff before assuming flare block
 	for attempt := range 3 {
-		resp, err = r.send(ctx, url, opts)
+		resp, err := r.send(ctx, url, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -119,10 +120,14 @@ func (r *Requester) doImage(
 		}
 
 		// temp 403 — small backoff and retry
-		time.Sleep(time.Duration(attempt+1) * 300 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(time.Duration(attempt+1) * 300 * time.Millisecond):
+		}
 	}
 
-	return resp, nil
+	return nil, fmt.Errorf("requester: image request failed after all retries: %s", url)
 }
 
 func (r *Requester) send(
@@ -187,6 +192,11 @@ func (r *Requester) refreshSession(ctx context.Context, url string) error {
 func (r *Requester) applySession(req *http.Request) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+
+	if r.flareCache == nil {
+		req.Header.Set("User-Agent", defaultUserAgent)
+		return
+	}
 
 	for _, c := range r.flareCache.Cookies {
 		req.AddCookie(&http.Cookie{
