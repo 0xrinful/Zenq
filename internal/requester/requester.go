@@ -1,6 +1,7 @@
 package requester
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -25,7 +26,7 @@ type RequestOptions struct {
 	Method  string
 	Mode    RequestMode
 	Headers map[string]string
-	Body    io.Reader
+	Body    []byte
 }
 
 type Requester struct {
@@ -51,6 +52,22 @@ func (r *Requester) Get(ctx context.Context, url string) (*http.Response, error)
 
 func (r *Requester) GetImage(ctx context.Context, url string) (*http.Response, error) {
 	return r.Do(ctx, url, RequestOptions{Mode: ModeImage})
+}
+
+func (r *Requester) Post(
+	ctx context.Context,
+	url string,
+	contentType string,
+	body []byte,
+) (*http.Response, error) {
+	return r.Do(ctx, url, RequestOptions{
+		Method: http.MethodPost,
+		Mode:   ModeDefault,
+		Headers: map[string]string{
+			"Content-Type": contentType,
+		},
+		Body: body,
+	})
 }
 
 func (r *Requester) Do(
@@ -140,7 +157,12 @@ func (r *Requester) send(
 		method = http.MethodGet
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, url, opts.Body)
+	var body io.Reader
+	if len(opts.Body) > 0 {
+		body = bytes.NewReader(opts.Body)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, fmt.Errorf("requester: build request: %w", err)
 	}
