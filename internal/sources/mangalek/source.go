@@ -22,7 +22,7 @@ type Source struct {
 	req *requester.Requester
 }
 
-func New(req *requester.Requester) *Source {
+func New(req *requester.Requester) sources.Source {
 	return &Source{req: req}
 }
 
