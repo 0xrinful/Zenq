@@ -18,4 +18,13 @@ type ChapterRecord struct {
 	DownloadedAt  time.Time
 	Optimized     bool
 	OptimizedAt   time.Time
+	Packed        bool
+	PackedAt      time.Time
+}
+
+type User struct {
+	ID           int
+	Email        string
+	PasswordHash string
+	CreatedAt    time.Time
 }
