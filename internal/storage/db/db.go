@@ -215,40 +215,36 @@ func (db *DB) Chapters(mangaSlug, sourceID string) ([]models.ChapterRecord, erro
 	return scanChapters(rows)
 }
 
-func (db *DB) MarkDownloaded(mangaSlug, sourceID string, number float64, rawPath string) error {
+func (db *DB) MarkDownloaded(chapter models.Chapter, rawPath string) error {
 	_, err := db.sql.Exec(`
         UPDATE chapters SET
             downloaded    = 1,
             downloaded_at = ?,
             raw_path      = ?
         WHERE manga_slug = ? AND source_id = ? AND number = ?
-    `, time.Now().UTC(), rawPath, mangaSlug, sourceID, number)
+    `, time.Now().UTC(), rawPath, chapter.MangaSlug, chapter.SourceID, chapter.Number)
 	return err
 }
 
-func (db *DB) MarkOptimized(
-	mangaSlug, sourceID string,
-	number float64,
-	optimizedPath string,
-) error {
+func (db *DB) MarkOptimized(chapter models.Chapter, optimizedPath string) error {
 	_, err := db.sql.Exec(`
         UPDATE chapters SET
             optimized      = 1,
             optimized_at   = ?,
             optimized_path = ?
         WHERE manga_slug = ? AND source_id = ? AND number = ?
-    `, time.Now().UTC(), optimizedPath, mangaSlug, sourceID, number)
+    `, time.Now().UTC(), optimizedPath, chapter.MangaSlug, chapter.SourceID, chapter.Number)
 	return err
 }
 
-func (db *DB) MarkPacked(mangaSlug, sourceID string, number float64, cbzPath string) error {
+func (db *DB) MarkPacked(chapter models.Chapter, cbzPath string) error {
 	_, err := db.sql.Exec(`
         UPDATE chapters SET
             packed    = 1,
             packed_at = ?,
             cbz_path  = ?
         WHERE manga_slug = ? AND source_id = ? AND number = ?
-    `, time.Now().UTC(), cbzPath, mangaSlug, sourceID, number)
+    `, time.Now().UTC(), cbzPath, chapter.MangaSlug, chapter.SourceID, chapter.Number)
 	return err
 }
 
@@ -358,10 +354,14 @@ func scanUser(row *sql.Row) (*models.User, error) {
 
 func scanChapter(row *sql.Row) (*models.ChapterRecord, error) {
 	var ch models.ChapterRecord
-	var downloadedAt, optimizedAt, packedAt sql.NullTime
+	var (
+		rawPath, optimizedPath, cbzPath     sql.NullString
+		releasedAt                          sql.NullTime
+		downloadedAt, optimizedAt, packedAt sql.NullTime
+	)
 	err := row.Scan(
-		&ch.MangaSlug, &ch.SourceID, &ch.Number, &ch.Title, &ch.URL, &ch.ReleasedAt,
-		&ch.RawPath, &ch.OptimizedPath, &ch.CBZPath,
+		&ch.MangaSlug, &ch.SourceID, &ch.Number, &ch.Title, &ch.URL, &releasedAt,
+		&rawPath, &optimizedPath, &cbzPath,
 		&ch.Downloaded, &downloadedAt,
 		&ch.Optimized, &optimizedAt,
 		&ch.Packed, &packedAt,
@@ -371,6 +371,14 @@ func scanChapter(row *sql.Row) (*models.ChapterRecord, error) {
 	}
 	if err != nil {
 		return nil, err
+	}
+
+	ch.RawPath = rawPath.String
+	ch.OptimizedPath = optimizedPath.String
+	ch.CBZPath = cbzPath.String
+
+	if releasedAt.Valid {
+		ch.ReleasedAt = releasedAt.Time.UTC()
 	}
 	if downloadedAt.Valid {
 		ch.DownloadedAt = downloadedAt.Time.UTC()
@@ -388,16 +396,28 @@ func scanChapters(rows *sql.Rows) ([]models.ChapterRecord, error) {
 	var chapters []models.ChapterRecord
 	for rows.Next() {
 		var ch models.ChapterRecord
-		var downloadedAt, optimizedAt, packedAt sql.NullTime
+		var (
+			rawPath, optimizedPath, cbzPath     sql.NullString
+			releasedAt                          sql.NullTime
+			downloadedAt, optimizedAt, packedAt sql.NullTime
+		)
 		err := rows.Scan(
-			&ch.MangaSlug, &ch.SourceID, &ch.Number, &ch.Title, &ch.URL, &ch.ReleasedAt,
-			&ch.RawPath, &ch.OptimizedPath, &ch.CBZPath,
+			&ch.MangaSlug, &ch.SourceID, &ch.Number, &ch.Title, &ch.URL, &releasedAt,
+			&rawPath, &optimizedPath, &cbzPath,
 			&ch.Downloaded, &downloadedAt,
 			&ch.Optimized, &optimizedAt,
 			&ch.Packed, &packedAt,
 		)
 		if err != nil {
 			return nil, err
+		}
+
+		ch.RawPath = rawPath.String
+		ch.OptimizedPath = optimizedPath.String
+		ch.CBZPath = cbzPath.String
+
+		if releasedAt.Valid {
+			ch.ReleasedAt = releasedAt.Time.UTC()
 		}
 		if downloadedAt.Valid {
 			ch.DownloadedAt = downloadedAt.Time.UTC()
