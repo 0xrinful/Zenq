@@ -140,7 +140,10 @@ func (s *Source) Manga(ctx context.Context, slug string) (*models.Manga, error) 
 	})
 
 	doc.Find("li.wp-manga-chapter").Each(func(i int, s *goquery.Selection) {
-		chapter := models.Chapter{}
+		chapter := models.Chapter{
+			SourceID:  sourceID,
+			MangaSlug: manga.Slug,
+		}
 		a := s.Find("a")
 		chapter.URL = a.AttrOr("href", "")
 

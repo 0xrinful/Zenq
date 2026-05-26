@@ -24,12 +24,14 @@ type Chapter struct {
 }
 
 type ChapterRange struct {
-	From float64
-	To   float64
+	From  float64
+	To    float64
+	All   bool
+	Force bool
 }
 
 func (r ChapterRange) Contains(number float64) bool {
-	return number >= r.From && number <= r.To
+	return r.All || (number >= r.From && number <= r.To)
 }
 
 type Page struct {

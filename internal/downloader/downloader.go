@@ -57,9 +57,6 @@ func (d *Downloader) DownloadChapter(
 
 func (d *Downloader) downloadPage(ctx context.Context, page models.Page, destDir string) error {
 	ext := extractExt(page.URL)
-	if ext == "" {
-		ext = ".jpg"
-	}
 
 	name := fmt.Sprintf("%03d%s", page.Number, ext)
 	fullpath := filepath.Join(destDir, name)
