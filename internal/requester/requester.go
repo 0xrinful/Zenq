@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/sync/singleflight"
+
 	"github.com/0xrinful/Zenq/internal/requester/flare"
 	"github.com/0xrinful/Zenq/internal/sources"
 )
@@ -30,12 +32,12 @@ type RequestOptions struct {
 }
 
 type Requester struct {
-	client      *http.Client
-	solver      *flare.Solver
-	config      sources.Config
-	flareCache  *flare.Result
-	lastRefresh time.Time
-	mu          sync.RWMutex
+	client     *http.Client
+	solver     *flare.Solver
+	config     sources.Config
+	flareCache *flare.Result
+	mu         sync.RWMutex
+	group      singleflight.Group
 }
 
 func New(solver *flare.Solver, cfg sources.Config) *Requester {
@@ -194,21 +196,20 @@ func (r *Requester) ensureSession(ctx context.Context, url string) error {
 }
 
 func (r *Requester) refreshSession(ctx context.Context, url string) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+	_, err, _ := r.group.Do("flare-session", func() (any, error) {
+		flareResult, err := r.solver.GetCookies(ctx, url)
+		if err != nil {
+			return nil, err
+		}
 
-	if time.Since(r.lastRefresh) < 10*time.Second {
-		return nil
-	}
+		r.mu.Lock()
+		r.flareCache = flareResult
+		r.mu.Unlock()
 
-	flareResult, err := r.solver.GetCookies(ctx, url)
-	if err != nil {
-		return err
-	}
+		return nil, nil
+	})
 
-	r.flareCache = flareResult
-	r.lastRefresh = time.Now()
-	return nil
+	return err
 }
 
 func (r *Requester) applySession(req *http.Request) {
