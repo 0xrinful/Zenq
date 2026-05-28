@@ -69,8 +69,9 @@ func (w *Worker) process(ctx context.Context, job *Job) {
 	case JobDownload:
 		src, _ := w.registry.Source(job.Chapter.SourceID)
 
-		pages, err := src.Pages(ctx, job.Chapter.URL)
-		if err != nil {
+		pages, e := src.Pages(ctx, job.Chapter.URL)
+		if e != nil {
+			err = e
 			break
 		}
 		job.Chapter.Pages = pages
