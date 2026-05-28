@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strings"
 
 	"github.com/0xrinful/Zenq/internal/service"
 )
@@ -79,7 +80,11 @@ func (a *Auth) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 	user, err := a.svc.SignUp(r.Context(), email, password)
 	if err != nil {
 		w.Header().Set("Content-Type", "text/html")
-		_ = a.tmpl.ExecuteTemplate(w, "signup.html", authPageData{Error: "Unable to create account"})
+		message := "Unable to create account"
+		if strings.Contains(err.Error(), "UNIQUE constraint failed: users.email") {
+			message = "Email already exists"
+		}
+		_ = a.tmpl.ExecuteTemplate(w, "signup.html", authPageData{Error: message})
 		return
 	}
 
