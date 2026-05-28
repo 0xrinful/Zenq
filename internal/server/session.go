@@ -28,6 +28,7 @@ func SetSession(w http.ResponseWriter, r *http.Request, session *Session, secret
 		Name:     sessionCookieName,
 		Value:    value,
 		Path:     "/",
+		Secure:   true,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	})
@@ -73,6 +74,7 @@ func ClearSession(w http.ResponseWriter) {
 		Value:    "",
 		Path:     "/",
 		MaxAge:   -1,
+		Secure:   true,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	})
