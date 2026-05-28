@@ -36,5 +36,6 @@ func New(
 		db:       db,
 		files:    files,
 		queue:    queue,
+		packer:   packer.New(),
 	}
 }
