@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/0xrinful/Zenq/internal/optimizer"
 	"github.com/0xrinful/Zenq/internal/registry"
 	"github.com/0xrinful/Zenq/internal/storage/db"
 	"github.com/0xrinful/Zenq/internal/storage/files"
@@ -15,11 +16,12 @@ type Config struct {
 }
 
 type Worker struct {
-	queue    *Queue
-	registry *registry.Registry
-	config   Config
-	db       *db.DB
-	files    *files.Store
+	queue     *Queue
+	registry  *registry.Registry
+	optimizer *optimizer.Optimizer
+	config    Config
+	db        *db.DB
+	files     *files.Store
 }
 
 func NewWorker(
@@ -91,6 +93,19 @@ func (w *Worker) process(ctx context.Context, job *Job) {
 		}
 
 	case JobOptimize:
+		err = w.optimizer.OptimizeChapter(ctx, job.SrcDir, job.DestDir)
+		if err == nil {
+			err = w.db.MarkOptimized(job.Chapter, job.DestDir)
+		}
+		if err == nil && w.config.AutoPack {
+			w.queue.Enqueue(&Job{
+				Type:     JobPack,
+				Chapter:  job.Chapter,
+				SrcDir:   job.DestDir,
+				DestFile: w.files.CBZPath(job.Chapter),
+			})
+		}
+
 	case JobPack:
 	}
 
