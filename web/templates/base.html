@@ -1,0 +1,124 @@
+{{define "base"}}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{block "title" .}}Zenq{{end}}</title>
+    <link rel="stylesheet" href="/static/output.css" />
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script defer src="/static/app.js"></script>
+  </head>
+  <body class="bg-base text-white font-mono min-h-screen">
+    <div class="min-h-screen md:flex">
+      {{/* Desktop sidebar */}}
+      <aside class="hidden md:flex md:flex-col w-60 bg-surface border-r border-border-dim p-4 gap-4">
+        <div class="text-lg font-semibold text-neon-blue">Zenq</div>
+        <nav class="flex flex-col gap-1">
+          {{template "nav-items" .}}
+        </nav>
+        <div class="mt-auto">
+          <form method="post" action="/logout">
+            <button class="btn-ghost w-full" type="submit">Logout</button>
+          </form>
+        </div>
+      </aside>
+
+      <div class="flex-1 min-w-0">
+        <main class="animate-fade-up px-4 py-6 pb-24 md:pb-6">
+          {{block "content" .}}{{end}}
+        </main>
+      </div>
+    </div>
+
+    {{/* Mobile bottom bar */}}
+    <nav
+      class="md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-border-dim z-40 h-16"
+    >
+      <div class="grid grid-cols-4 h-full">
+        {{template "nav-items-mobile" .}}
+      </div>
+    </nav>
+
+    {{/* Toast container */}}
+    <div
+      id="toast-container"
+      class="fixed bottom-20 right-4 md:bottom-4 z-50 flex flex-col gap-2 pointer-events-none"
+    ></div>
+  </body>
+</html>
+{{end}}
+
+{{define "nav-items"}}
+  {{$p := .CurrentPath}}
+  <a
+    href="/"
+    class="flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors
+      {{if or (eq $p "/") (eq $p "library")}}text-neon-blue border border-neon-blue/30 bg-neon-blue/5{{else}}text-dim hover:text-white{{end}}"
+  >
+    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M4 6.75C4 5.784 4.784 5 5.75 5H19.5a1.5 1.5 0 0 1 1.5 1.5v12a.75.75 0 0 1-.75.75H6.5A2.5 2.5 0 0 0 4 21V6.75Z" />
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H21" />
+    </svg>
+    Library
+  </a>
+  <a
+    href="/sources"
+    class="flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors
+      {{if or (eq $p "/sources") (eq $p "sources")}}text-neon-blue border border-neon-blue/30 bg-neon-blue/5{{else}}text-dim hover:text-white{{end}}"
+  >
+    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M16.5 7.5 14 14l-6.5 2.5L10 10l6.5-2.5Z" />
+      <circle cx="12" cy="12" r="1" fill="currentColor" />
+    </svg>
+    Sources
+  </a>
+  <a
+    href="/dashboard"
+    class="flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors
+      {{if or (eq $p "/dashboard") (eq $p "dashboard")}}text-neon-blue border border-neon-blue/30 bg-neon-blue/5{{else}}text-dim hover:text-white{{end}}"
+  >
+    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M3.5 3.5h7v7h-7v-7Zm10 0h7v7h-7v-7Zm-10 10h7v7h-7v-7Zm10 0h7v7h-7v-7Z" />
+    </svg>
+    Dashboard
+  </a>
+{{end}}
+
+{{define "nav-items-mobile"}}
+  {{$p := .CurrentPath}}
+  <a
+    href="/"
+    class="flex flex-col items-center justify-center gap-1 text-[10px] transition-colors
+      {{if or (eq $p "/") (eq $p "library")}}text-neon-blue{{else}}text-dim hover:text-white{{end}}"
+  >
+    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M4 6.75C4 5.784 4.784 5 5.75 5H19.5a1.5 1.5 0 0 1 1.5 1.5v12a.75.75 0 0 1-.75.75H6.5A2.5 2.5 0 0 0 4 21V6.75Z" />
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H21" />
+    </svg>
+    <span>Library</span>
+  </a>
+  <a
+    href="/sources"
+    class="flex flex-col items-center justify-center gap-1 text-[10px] transition-colors
+      {{if or (eq $p "/sources") (eq $p "sources")}}text-neon-blue{{else}}text-dim hover:text-white{{end}}"
+  >
+    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M16.5 7.5 14 14l-6.5 2.5L10 10l6.5-2.5Z" />
+      <circle cx="12" cy="12" r="1" fill="currentColor" />
+    </svg>
+    <span>Sources</span>
+  </a>
+  <a
+    href="/dashboard"
+    class="flex flex-col items-center justify-center gap-1 text-[10px] transition-colors
+      {{if or (eq $p "/dashboard") (eq $p "dashboard")}}text-neon-blue{{else}}text-dim hover:text-white{{end}}"
+  >
+    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M3.5 3.5h7v7h-7v-7Zm10 0h7v7h-7v-7Zm-10 10h7v7h-7v-7Zm10 0h7v7h-7v-7Z" />
+    </svg>
+    <span>Dashboard</span>
+  </a>
+{{end}}

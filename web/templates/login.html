@@ -1,0 +1,37 @@
+{{define "login.html"}}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Zenq — Login</title>
+    <link rel="stylesheet" href="/static/output.css" />
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script defer src="/static/app.js"></script>
+  </head>
+  <body class="bg-base min-h-screen flex items-center justify-center text-white font-mono">
+    <div class="w-full max-w-sm px-4">
+      <div class="card p-6 space-y-4">
+        <div class="space-y-1">
+          <h1 class="text-lg font-semibold text-neon-blue">Welcome back</h1>
+          <p class="text-xs text-dim">Sign in to continue your library.</p>
+        </div>
+        {{if .Error}}
+          <div class="text-xs text-neon-red border border-neon-red/40 bg-neon-red/10 rounded px-3 py-2">
+            {{.Error}}
+          </div>
+        {{end}}
+        <form method="post" action="/login" class="space-y-3">
+          <input class="input" type="email" name="email" placeholder="Email" required />
+          <input class="input" type="password" name="password" placeholder="Password" required />
+          <button class="btn-primary w-full" type="submit">Login</button>
+        </form>
+      </div>
+      <p class="mt-4 text-center text-xs text-dim">
+        New here?
+        <a class="text-neon-blue hover:text-white transition-colors" href="/signup">Create an account</a>
+      </p>
+    </div>
+  </body>
+</html>
+{{end}}
