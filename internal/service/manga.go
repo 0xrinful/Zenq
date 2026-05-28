@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -255,6 +256,39 @@ func (s *Service) OptimizeChapter(ctx context.Context, chapter models.Chapter) (
 	return jobID, nil
 }
 
+func (s *Service) OptimizeRange(
+	ctx context.Context,
+	sourceID, mangaSlug string,
+	r models.ChapterRange,
+) ([]int, error) {
+	chapters, err := s.db.Chapters(mangaSlug, sourceID)
+	if err != nil {
+		return nil, err
+	}
+
+	var jobIDs []int
+	for _, ch := range chapters {
+		if !r.Contains(ch.Number) || (ch.Optimized && !r.Force) || !ch.Downloaded {
+			continue
+		}
+
+		destDir := s.files.OptimizedDir(ch.Chapter)
+		if err := s.files.EnsureDir(destDir); err != nil {
+			return nil, err
+		}
+
+		id := s.queue.Enqueue(&queue.Job{
+			Type:    queue.JobOptimize,
+			Chapter: ch.Chapter,
+			SrcDir:  ch.RawPath,
+			DestDir: destDir,
+		})
+		jobIDs = append(jobIDs, id)
+	}
+
+	return jobIDs, nil
+}
+
 func (s *Service) PackChapter(ctx context.Context, chapter models.Chapter) (int, error) {
 	ch, err := s.db.Chapter(chapter.MangaSlug, chapter.SourceID, chapter.Number)
 	if err != nil {
@@ -278,6 +312,77 @@ func (s *Service) PackChapter(ctx context.Context, chapter models.Chapter) (int,
 	})
 
 	return jobID, nil
+}
+
+func (s *Service) PackRange(
+	ctx context.Context,
+	sourceID, mangaSlug string,
+	r models.ChapterRange,
+) ([]int, error) {
+	chapters, err := s.db.Chapters(mangaSlug, sourceID)
+	if err != nil {
+		return nil, err
+	}
+
+	var jobIDs []int
+	for _, ch := range chapters {
+		if !r.Contains(ch.Number) {
+			continue
+		}
+
+		if ch.Packed && !r.Force {
+			continue
+		}
+
+		if !ch.Downloaded {
+			continue
+		}
+
+		srcDir := ch.RawPath
+		if ch.Optimized && ch.OptimizedPath != "" {
+			srcDir = ch.OptimizedPath
+		}
+
+		id := s.queue.Enqueue(&queue.Job{
+			Type:     queue.JobPack,
+			Chapter:  ch.Chapter,
+			SrcDir:   srcDir,
+			DestFile: s.files.CBZPath(ch.Chapter),
+		})
+		jobIDs = append(jobIDs, id)
+	}
+
+	return jobIDs, nil
+}
+
+func (s *Service) PackManga(
+	ctx context.Context,
+	sourceID, mangaSlug string,
+	r models.ChapterRange,
+) (string, error) {
+	manga, err := s.db.Manga(mangaSlug, sourceID)
+	if err != nil {
+		return "", fmt.Errorf("service: fetch manga record: %w", err)
+	}
+
+	cbzPaths, err := s.files.CBZRange(manga.Manga, r)
+	if err != nil {
+		return "", fmt.Errorf("service: fetch cbz paths: %w", err)
+	}
+
+	tmpFile, err := os.CreateTemp("", "manga-pack-*.zip")
+	if err != nil {
+		return "", fmt.Errorf("service: create temp file: %w", err)
+	}
+	destZip := tmpFile.Name()
+	tmpFile.Close()
+
+	err = s.packer.PackManga(ctx, manga.Manga, cbzPaths, manga.CoverPath, destZip)
+	if err != nil {
+		return "", fmt.Errorf("service: failed compiling manga pack: %w", err)
+	}
+
+	return destZip, nil
 }
 
 func (s *Service) Jobs() []*queue.Job {

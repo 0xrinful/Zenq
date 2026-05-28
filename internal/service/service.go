@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 
+	"github.com/0xrinful/Zenq/internal/packer"
 	"github.com/0xrinful/Zenq/internal/queue"
 	"github.com/0xrinful/Zenq/internal/registry"
 	"github.com/0xrinful/Zenq/internal/storage/db"
@@ -21,6 +22,7 @@ type Service struct {
 	db       *db.DB
 	files    *files.Store
 	queue    *queue.Queue
+	packer   *packer.Packer
 }
 
 func New(

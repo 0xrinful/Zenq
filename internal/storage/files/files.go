@@ -46,7 +46,7 @@ func (s *Store) CBZRange(manga models.Manga, r models.ChapterRange) ([]string, e
 
 	var paths []string
 	for _, e := range entries {
-		if !strings.HasSuffix(e.Name(), ".cbz") {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".cbz") {
 			continue
 		}
 		num := parseNumberFromFilename(e.Name())
