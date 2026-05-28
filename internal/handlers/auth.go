@@ -35,7 +35,7 @@ func NewAuth(
 
 func (a *Auth) LoginPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	if err := a.tmpl.ExecuteTemplate(w, "login.html", nil); err != nil {
+	if err := a.tmpl.ExecuteTemplate(w, "login.html", authPageData{}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -52,8 +52,7 @@ func (a *Auth) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	user, err := a.svc.SignIn(r.Context(), email, password)
 	if err != nil {
 		w.Header().Set("Content-Type", "text/html")
-		w.WriteHeader(http.StatusUnauthorized)
-		_ = a.tmpl.ExecuteTemplate(w, "login.html", authPageData{Error: err.Error()})
+		_ = a.tmpl.ExecuteTemplate(w, "login.html", authPageData{Error: "Invalid email or password"})
 		return
 	}
 
@@ -63,7 +62,7 @@ func (a *Auth) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 
 func (a *Auth) SignupPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	if err := a.tmpl.ExecuteTemplate(w, "signup.html", nil); err != nil {
+	if err := a.tmpl.ExecuteTemplate(w, "signup.html", authPageData{}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -80,7 +79,6 @@ func (a *Auth) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 	user, err := a.svc.SignUp(r.Context(), email, password)
 	if err != nil {
 		w.Header().Set("Content-Type", "text/html")
-		w.WriteHeader(http.StatusBadRequest)
 		_ = a.tmpl.ExecuteTemplate(w, "signup.html", authPageData{Error: err.Error()})
 		return
 	}
