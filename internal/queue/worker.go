@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/0xrinful/Zenq/internal/optimizer"
+	"github.com/0xrinful/Zenq/internal/packer"
 	"github.com/0xrinful/Zenq/internal/registry"
 	"github.com/0xrinful/Zenq/internal/storage/db"
 	"github.com/0xrinful/Zenq/internal/storage/files"
@@ -19,6 +20,7 @@ type Worker struct {
 	queue     *Queue
 	registry  *registry.Registry
 	optimizer *optimizer.Optimizer
+	packer    *packer.Packer
 	config    Config
 	db        *db.DB
 	files     *files.Store
@@ -107,6 +109,10 @@ func (w *Worker) process(ctx context.Context, job *Job) {
 		}
 
 	case JobPack:
+		err = w.packer.Pack(ctx, job.Chapter, job.SrcDir, job.DestFile)
+		if err == nil {
+			err = w.db.MarkPacked(job.Chapter, job.DestFile)
+		}
 	}
 
 	if err != nil {
