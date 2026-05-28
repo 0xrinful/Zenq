@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"fmt"
-	"html"
 	"html/template"
 	"net/http"
 
@@ -97,5 +96,5 @@ func (a *Auth) Logout(w http.ResponseWriter, r *http.Request) {
 
 func writeTodo(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, "TODO: %s", html.EscapeString(r.URL.Path))
+	fmt.Fprintf(w, "TODO: %s", template.HTMLEscapeString(r.URL.Path))
 }

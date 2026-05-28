@@ -19,7 +19,11 @@ type Session struct {
 }
 
 func SetSession(w http.ResponseWriter, r *http.Request, session *Session, secret string) {
-	payload, _ := json.Marshal(session)
+	payload, err := json.Marshal(session)
+	if err != nil {
+		ClearSession(w)
+		return
+	}
 	sig := signSession(payload, secret)
 
 	value := base64.StdEncoding.EncodeToString(payload) + "." + base64.StdEncoding.EncodeToString(sig)

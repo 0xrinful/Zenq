@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"path/filepath"
 	"sync"
 
 	"github.com/0xrinful/Zenq/internal/service"
@@ -28,9 +29,29 @@ func SetSessionSecret(secret string) {
 }
 
 func New(svc *service.Service) *Server {
-	tmpl, err := template.ParseGlob("web/templates/**/*")
-	if err != nil {
-		slog.Warn("server: parse templates", "err", err)
+	tmpl := template.New("root")
+	patterns := []string{
+		filepath.Join("web", "templates", "*"),
+		filepath.Join("web", "templates", "*", "*"),
+	}
+
+	parsed := false
+	for _, pattern := range patterns {
+		matches, err := filepath.Glob(pattern)
+		if err != nil {
+			slog.Warn("server: glob templates", "pattern", pattern, "err", err)
+			continue
+		}
+		if len(matches) == 0 {
+			continue
+		}
+		if _, err := tmpl.ParseGlob(pattern); err != nil {
+			slog.Warn("server: parse templates", "pattern", pattern, "err", err)
+			continue
+		}
+		parsed = true
+	}
+	if !parsed {
 		tmpl = template.New("root")
 	}
 
