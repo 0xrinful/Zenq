@@ -51,6 +51,16 @@ func WithLogging(next http.Handler) http.Handler {
 			status = http.StatusOK
 		}
 
-		slog.Info("request", "method", r.Method, "path", r.URL.Path, "status", status, "duration", duration)
+		slog.Info(
+			"request",
+			"method",
+			r.Method,
+			"path",
+			r.URL.Path,
+			"status",
+			status,
+			"duration",
+			duration,
+		)
 	})
 }

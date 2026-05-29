@@ -9,8 +9,8 @@ import (
 )
 
 type Library struct {
-	svc  *service.Service
-	tmpl *template.Template
+	svc       *service.Service
+	templates map[string]*template.Template
 }
 
 type libraryData struct {
@@ -18,8 +18,8 @@ type libraryData struct {
 	Mangas      []models.MangaRecord
 }
 
-func NewLibrary(svc *service.Service, tmpl *template.Template) *Library {
-	return &Library{svc: svc, tmpl: tmpl}
+func NewLibrary(svc *service.Service, templates map[string]*template.Template) *Library {
+	return &Library{svc: svc, templates: templates}
 }
 
 func (l *Library) Index(w http.ResponseWriter, r *http.Request) {
@@ -30,7 +30,7 @@ func (l *Library) Index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	renderTemplate(w, l.tmpl, "library.html", libraryData{
+	renderTemplate(w, l.templates, "library.html", libraryData{
 		CurrentPath: "library",
 		Mangas:      mangas,
 	})

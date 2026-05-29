@@ -43,8 +43,8 @@ type jobFilter struct {
 }
 
 type Server struct {
-	service *service.Service
-	tmpl    *template.Template
+	service   *service.Service
+	templates map[string]*template.Template
 }
 
 func SetSessionSecret(secret string) {
@@ -106,7 +106,22 @@ func jobDotClass(status queue.JobStatus) string {
 }
 
 func jobFilters(counts any) []jobFilter {
-	all, pending, running, done, failed := fieldInt(counts, "All"), fieldInt(counts, "Pending"), fieldInt(counts, "Running"), fieldInt(counts, "Done"), fieldInt(counts, "Failed")
+	all, pending, running, done, failed := fieldInt(
+		counts,
+		"All",
+	), fieldInt(
+		counts,
+		"Pending",
+	), fieldInt(
+		counts,
+		"Running",
+	), fieldInt(
+		counts,
+		"Done",
+	), fieldInt(
+		counts,
+		"Failed",
+	)
 	active := fieldString(counts, "Active")
 	if active == "" {
 		active = "all"
@@ -177,36 +192,47 @@ func New(svc *service.Service) *Server {
 		"jobFilters":     jobFilters,
 		"times":          times,
 		"randomHeight":   randomHeight,
+		"sub":            func(a, b int) int { return a - b },
+		"add":            func(a, b int) int { return a + b },
 	}
-	tmpl := template.New("root").Funcs(funcMap)
+	templatesCache := make(map[string]*template.Template)
+
 	patterns := []string{
-		filepath.Join("web", "templates", "*.html"),
-		filepath.Join("web", "templates", "*", "*.html"),
+		filepath.Join("web", "templates", "partials", "*.html"),
+		filepath.Join("web", "templates", "components", "*.html"),
+		filepath.Join("web", "templates", "layouts", "*.html"),
 	}
 
-	parsed := false
+	sharedFiles := []string{}
 	for _, pattern := range patterns {
 		matches, err := filepath.Glob(pattern)
 		if err != nil {
-			slog.Warn("server: glob templates", "pattern", pattern, "err", err)
+			slog.Error("server: global glob error", "pattern", pattern, "err", err)
 			continue
 		}
-		if len(matches) == 0 {
-			continue
-		}
-		if _, err := tmpl.ParseGlob(pattern); err != nil {
-			slog.Warn("server: parse templates", "pattern", pattern, "err", err)
-			continue
-		}
-		parsed = true
+		sharedFiles = append(sharedFiles, matches...)
 	}
-	if !parsed {
-		tmpl = template.New("root").Funcs(funcMap)
+
+	pages, err := filepath.Glob(filepath.Join("web", "templates", "pages", "*.html"))
+	if err != nil {
+		slog.Error("server: pages glob error", "err", err)
+	}
+
+	for _, page := range pages {
+		name := filepath.Base(page)
+
+		filesToParse := append([]string{page}, sharedFiles...)
+		t, err := template.New(name).Funcs(funcMap).ParseFiles(filesToParse...)
+		if err != nil {
+			slog.Error("server: failed to parse template bundle", "page", name, "err", err)
+			continue
+		}
+		templatesCache[name] = t
 	}
 
 	return &Server{
-		service: svc,
-		tmpl:    tmpl,
+		service:   svc,
+		templates: templatesCache,
 	}
 }
 

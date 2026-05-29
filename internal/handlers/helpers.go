@@ -27,9 +27,41 @@ func getUserID(ctx context.Context) int {
 	return 0
 }
 
-func renderTemplate(w http.ResponseWriter, tmpl *template.Template, name string, data any) {
+func renderTemplate(
+	w http.ResponseWriter,
+	templates map[string]*template.Template,
+	name string,
+	data any,
+) {
 	w.Header().Set("Content-Type", "text/html")
-	if err := tmpl.ExecuteTemplate(w, name, data); err != nil {
+
+	t, ok := templates[name]
+	if !ok {
+		http.Error(w, "Template not found", http.StatusInternalServerError)
+		return
+	}
+
+	if err := t.Execute(w, data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func renderTemplateName(
+	w http.ResponseWriter,
+	templates map[string]*template.Template,
+	name string,
+	tmpl string,
+	data any,
+) {
+	w.Header().Set("Content-Type", "text/html")
+
+	t, ok := templates[name]
+	if !ok {
+		http.Error(w, "Template not found", http.StatusInternalServerError)
+		return
+	}
+
+	if err := t.ExecuteTemplate(w, tmpl, data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

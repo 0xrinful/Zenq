@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"html/template"
 	"net/http"
 	"strings"
@@ -11,7 +10,7 @@ import (
 
 type Auth struct {
 	svc          *service.Service
-	tmpl         *template.Template
+	templates    map[string]*template.Template
 	setSession   func(http.ResponseWriter, *http.Request, int64)
 	clearSession func(http.ResponseWriter)
 }
@@ -22,23 +21,20 @@ type authPageData struct {
 
 func NewAuth(
 	svc *service.Service,
-	tmpl *template.Template,
+	templates map[string]*template.Template,
 	setSession func(http.ResponseWriter, *http.Request, int64),
 	clearSession func(http.ResponseWriter),
 ) *Auth {
 	return &Auth{
 		svc:          svc,
-		tmpl:         tmpl,
+		templates:    templates,
 		setSession:   setSession,
 		clearSession: clearSession,
 	}
 }
 
 func (a *Auth) LoginPage(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
-	if err := a.tmpl.ExecuteTemplate(w, "login.html", authPageData{}); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	renderTemplate(w, a.templates, "login.html", authPageData{})
 }
 
 func (a *Auth) LoginSubmit(w http.ResponseWriter, r *http.Request) {
@@ -52,8 +48,13 @@ func (a *Auth) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 
 	user, err := a.svc.SignIn(r.Context(), email, password)
 	if err != nil {
+		renderTemplate(
+			w,
+			a.templates,
+			"login.html",
+			authPageData{Error: "Invalid email or password"},
+		)
 		w.Header().Set("Content-Type", "text/html")
-		_ = a.tmpl.ExecuteTemplate(w, "login.html", authPageData{Error: "Invalid email or password"})
 		return
 	}
 
@@ -62,10 +63,7 @@ func (a *Auth) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Auth) SignupPage(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
-	if err := a.tmpl.ExecuteTemplate(w, "signup.html", authPageData{}); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	renderTemplate(w, a.templates, "signup.html", authPageData{})
 }
 
 func (a *Auth) SignupSubmit(w http.ResponseWriter, r *http.Request) {
@@ -84,7 +82,7 @@ func (a *Auth) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed: users.email") {
 			message = "Email already exists"
 		}
-		_ = a.tmpl.ExecuteTemplate(w, "signup.html", authPageData{Error: message})
+		renderTemplate(w, a.templates, "signup.html", authPageData{Error: message})
 		return
 	}
 
@@ -95,9 +93,4 @@ func (a *Auth) SignupSubmit(w http.ResponseWriter, r *http.Request) {
 func (a *Auth) Logout(w http.ResponseWriter, r *http.Request) {
 	a.clearSession(w)
 	http.Redirect(w, r, "/login", http.StatusFound)
-}
-
-func writeTodo(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, "TODO: %s", template.HTMLEscapeString(r.URL.Path))
 }

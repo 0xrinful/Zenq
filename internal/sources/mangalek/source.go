@@ -13,8 +13,9 @@ const (
 
 func Config() sources.Config {
 	return sources.Config{
-		BaseURL:    baseURL,
-		NeedsFlare: true,
+		BaseURL:           baseURL,
+		CloudflareTestURL: baseURL + "/page/5/",
+		NeedsFlare:        true,
 	}
 }
 

@@ -16,8 +16,8 @@ import (
 )
 
 type Manga struct {
-	svc  *service.Service
-	tmpl *template.Template
+	svc       *service.Service
+	templates map[string]*template.Template
 }
 
 type RangeRequest struct {
@@ -36,8 +36,8 @@ type mangaPageData struct {
 	ReadMarks   map[float64]bool
 }
 
-func NewManga(svc *service.Service, tmpl *template.Template) *Manga {
-	return &Manga{svc: svc, tmpl: tmpl}
+func NewManga(svc *service.Service, templates map[string]*template.Template) *Manga {
+	return &Manga{svc: svc, templates: templates}
 }
 
 func (m *Manga) Detail(w http.ResponseWriter, r *http.Request) {
@@ -65,7 +65,7 @@ func (m *Manga) Detail(w http.ResponseWriter, r *http.Request) {
 		readMarks[number] = true
 	}
 
-	renderTemplate(w, m.tmpl, "manga.html", mangaPageData{
+	renderTemplate(w, m.templates, "manga.html", mangaPageData{
 		CurrentPath: "library",
 		SourceID:    sourceID,
 		MangaSlug:   slug,

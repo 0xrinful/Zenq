@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strconv"
 
 	"github.com/0xrinful/Zenq/internal/models"
 	"github.com/0xrinful/Zenq/internal/service"
@@ -12,8 +13,8 @@ import (
 )
 
 type Sources struct {
-	svc  *service.Service
-	tmpl *template.Template
+	svc       *service.Service
+	templates map[string]*template.Template
 }
 
 type sourcesPageData struct {
@@ -36,6 +37,7 @@ type sourceBrowseData struct {
 type browseResultsData struct {
 	SourceID string
 	Mangas   []models.Manga
+	Page     int
 }
 
 type sourceMangaData struct {
@@ -45,13 +47,13 @@ type sourceMangaData struct {
 	InLibrary bool
 }
 
-func NewSources(svc *service.Service, tmpl *template.Template) *Sources {
-	return &Sources{svc: svc, tmpl: tmpl}
+func NewSources(svc *service.Service, templates map[string]*template.Template) *Sources {
+	return &Sources{svc: svc, templates: templates}
 }
 
 func (s *Sources) Index(w http.ResponseWriter, r *http.Request) {
 	infos := s.svc.Sources()
-	renderTemplate(w, s.tmpl, "sources-list", sourcesListData{
+	renderTemplateName(w, s.templates, "sources.html", "sources-list", sourcesListData{
 		sourcesPageData: sourcesPageData{
 			CurrentPath:  "sources",
 			PageTitle:    "Sources — ZENQ",
@@ -69,7 +71,7 @@ func (s *Sources) Browse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	renderTemplate(w, s.tmpl, "source-browse", sourceBrowseData{
+	renderTemplateName(w, s.templates, "sources.html", "source-browse", sourceBrowseData{
 		sourcesPageData: sourcesPageData{
 			CurrentPath:  "sources",
 			PageTitle:    info.Name,
@@ -82,7 +84,15 @@ func (s *Sources) Browse(w http.ResponseWriter, r *http.Request) {
 
 func (s *Sources) BrowseResults(w http.ResponseWriter, r *http.Request) {
 	sourceID := r.PathValue("id")
-	mangas, err := s.svc.SourceLatest(r.Context(), sourceID, 1)
+
+	pageStr := r.URL.Query().Get("page")
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		page = 1
+	}
+	size := 25
+
+	mangas, err := s.svc.SourceLatest(r.Context(), sourceID, page, size)
 	if err != nil {
 		if errors.Is(err, service.ErrUnknownSource) {
 			http.NotFound(w, r)
@@ -91,10 +101,10 @@ func (s *Sources) BrowseResults(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	renderTemplate(w, s.tmpl, "browse-results-partial", browseResultsData{
+	renderTemplateName(w, s.templates, "sources.html", "browse-results-partial", browseResultsData{
 		SourceID: sourceID,
 		Mangas:   mangas,
+		Page:     page,
 	})
 }
 
@@ -111,7 +121,7 @@ func (s *Sources) Search(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	renderTemplate(w, s.tmpl, "browse-results-partial", browseResultsData{
+	renderTemplateName(w, s.templates, "sources.html", "browse-results-partial", browseResultsData{
 		SourceID: sourceID,
 		Mangas:   mangas,
 	})
@@ -150,7 +160,7 @@ func (s *Sources) MangaDetail(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	renderTemplate(w, s.tmpl, "source-manga-detail", sourceMangaData{
+	renderTemplateName(w, s.templates, "sources.html", "source-manga-detail", sourceMangaData{
 		sourcesPageData: sourcesPageData{
 			CurrentPath:  "sources",
 			PageTitle:    fmt.Sprintf("%s — ZENQ", manga.Title),

@@ -7,9 +7,10 @@ import (
 )
 
 type Config struct {
-	BaseURL    string
-	NeedsFlare bool
-	Headers    map[string]string
+	BaseURL           string
+	NeedsFlare        bool
+	CloudflareTestURL string
+	Headers           map[string]string
 }
 
 type SourceInfo struct {
@@ -19,7 +20,7 @@ type SourceInfo struct {
 
 type Source interface {
 	Info() SourceInfo
-	Latest(ctx context.Context, page int) ([]models.Manga, error)
+	Latest(ctx context.Context, page, size int) ([]models.Manga, error)
 	Search(ctx context.Context, query string) ([]models.Manga, error)
 	Manga(ctx context.Context, slug string) (*models.Manga, error)
 	Chapters(ctx context.Context, slug string) ([]models.Chapter, error)

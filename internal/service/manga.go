@@ -69,13 +69,13 @@ func (s *Service) MangaPage(
 func (s *Service) SourceLatest(
 	ctx context.Context,
 	sourceID string,
-	page int,
+	page, size int,
 ) ([]models.Manga, error) {
 	src, ok := s.registry.Source(sourceID)
 	if !ok {
 		return nil, ErrUnknownSource
 	}
-	return src.Latest(ctx, page)
+	return src.Latest(ctx, page, size)
 }
 
 func (s *Service) SourceSearch(

@@ -12,18 +12,23 @@ func routes(s *Server, secret string) *http.ServeMux {
 	fs := http.FileServer(http.Dir("web/static"))
 	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	auth := handlers.NewAuth(s.service, s.tmpl, func(w http.ResponseWriter, r *http.Request, userID int64) {
-		SetSession(w, r, &Session{UserID: userID}, secret)
-	}, func(w http.ResponseWriter) {
-		ClearSession(w)
-	})
+	auth := handlers.NewAuth(
+		s.service,
+		s.templates,
+		func(w http.ResponseWriter, r *http.Request, userID int64) {
+			SetSession(w, r, &Session{UserID: userID}, secret)
+		},
+		func(w http.ResponseWriter) {
+			ClearSession(w)
+		},
+	)
 
-	library := handlers.NewLibrary(s.service, s.tmpl)
-	manga := handlers.NewManga(s.service, s.tmpl)
-	chapter := handlers.NewChapter(s.service, s.tmpl)
-	viewer := handlers.NewViewer(s.service, s.tmpl)
-	sources := handlers.NewSources(s.service, s.tmpl)
-	dashboard := handlers.NewDashboard(s.service, s.tmpl)
+	library := handlers.NewLibrary(s.service, s.templates)
+	manga := handlers.NewManga(s.service, s.templates)
+	chapter := handlers.NewChapter(s.service, s.templates)
+	viewer := handlers.NewViewer(s.service, s.templates)
+	sources := handlers.NewSources(s.service, s.templates)
+	dashboard := handlers.NewDashboard(s.service, s.templates)
 
 	mux.Handle("GET /login", http.HandlerFunc(auth.LoginPage))
 	mux.Handle("POST /login", http.HandlerFunc(auth.LoginSubmit))

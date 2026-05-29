@@ -15,8 +15,8 @@ import (
 )
 
 type Viewer struct {
-	svc  *service.Service
-	tmpl *template.Template
+	svc       *service.Service
+	templates map[string]*template.Template
 }
 
 type PageResponse struct {
@@ -36,8 +36,8 @@ type viewerData struct {
 
 var errChapterNotFound = errors.New("chapter not found")
 
-func NewViewer(svc *service.Service, tmpl *template.Template) *Viewer {
-	return &Viewer{svc: svc, tmpl: tmpl}
+func NewViewer(svc *service.Service, templates map[string]*template.Template) *Viewer {
+	return &Viewer{svc: svc, templates: templates}
 }
 
 func (v *Viewer) Page(w http.ResponseWriter, r *http.Request) {
@@ -83,7 +83,7 @@ func (v *Viewer) Page(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	renderTemplate(w, v.tmpl, "viewer.html", viewerData{
+	renderTemplate(w, v.templates, "viewer.html", viewerData{
 		SourceID:      sourceID,
 		MangaSlug:     slug,
 		MangaTitle:    result.Manga.Title,
@@ -188,7 +188,9 @@ func (v *Viewer) Image(w http.ResponseWriter, r *http.Request) {
 	http.ServeContent(w, r, info.Name(), info.ModTime(), file)
 }
 
-func (v *Viewer) lookupChapter(r *http.Request) (*service.MangaPageResult, *models.ChapterRecord, float64, error) {
+func (v *Viewer) lookupChapter(
+	r *http.Request,
+) (*service.MangaPageResult, *models.ChapterRecord, float64, error) {
 	userID := getUserID(r.Context())
 	sourceID := r.PathValue("sourceID")
 	slug := r.PathValue("slug")

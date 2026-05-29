@@ -19,8 +19,8 @@ import (
 )
 
 type Dashboard struct {
-	svc  *service.Service
-	tmpl *template.Template
+	svc       *service.Service
+	templates map[string]*template.Template
 }
 
 type jobDesc struct {
@@ -58,8 +58,8 @@ type storagePartialData struct {
 	Percent    float64
 }
 
-func NewDashboard(svc *service.Service, tmpl *template.Template) *Dashboard {
-	return &Dashboard{svc: svc, tmpl: tmpl}
+func NewDashboard(svc *service.Service, templates map[string]*template.Template) *Dashboard {
+	return &Dashboard{svc: svc, templates: templates}
 }
 
 func buildDescription(j *queue.Job) string {
@@ -91,7 +91,7 @@ func (d *Dashboard) Page(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	renderTemplate(w, d.tmpl, "dashboard.html", dashboardPageData{
+	renderTemplate(w, d.templates, "dashboard.html", dashboardPageData{
 		CurrentPath:  "dashboard",
 		MangaCount:   len(mangas),
 		RunningCount: counts.Running,
@@ -106,12 +106,18 @@ func (d *Dashboard) Jobs(w http.ResponseWriter, r *http.Request) {
 
 	if r.URL.Query().Get("count") != "" {
 		counts := countJobs(jobs, status)
-		renderTemplate(w, d.tmpl, "job-count-partial", counts)
+		renderTemplateName(w, d.templates, "dashboard.html", "job-count-partial", counts)
 		return
 	}
 
 	filtered := filterJobsByStatus(jobs, status)
-	renderTemplate(w, d.tmpl, "jobs-list-partial", describeJobs(filtered))
+	renderTemplateName(
+		w,
+		d.templates,
+		"dashboard.html",
+		"jobs-list-partial",
+		describeJobs(filtered),
+	)
 }
 
 func (d *Dashboard) JobDetail(w http.ResponseWriter, r *http.Request) {
@@ -127,7 +133,7 @@ func (d *Dashboard) JobDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	renderTemplate(w, d.tmpl, "job-detail-partial", describeJob(job))
+	renderTemplateName(w, d.templates, "dashboard.html", "job-detail-partial", describeJob(job))
 }
 
 func (d *Dashboard) Storage(w http.ResponseWriter, r *http.Request) {
@@ -154,7 +160,7 @@ func (d *Dashboard) Storage(w http.ResponseWriter, r *http.Request) {
 		data.Percent = (float64(used) / float64(total)) * 100
 	}
 
-	renderTemplate(w, d.tmpl, "storage-partial", data)
+	renderTemplateName(w, d.templates, "dashboard.html", "storage-partial", data)
 }
 
 func (d *Dashboard) StartFlareSolver(w http.ResponseWriter, r *http.Request) {
@@ -174,7 +180,7 @@ func (d *Dashboard) StartFlareSolver(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeToast(w, "FlareSolver started", "success")
-	renderTemplate(w, d.tmpl, "flare-status-partial", nil)
+	renderTemplateName(w, d.templates, "dashboard.html", "flare-status-partial", nil)
 }
 
 func describeJobs(jobs []*queue.Job) []jobDesc {

@@ -11,12 +11,12 @@ import (
 )
 
 type Chapter struct {
-	svc  *service.Service
-	tmpl *template.Template
+	svc       *service.Service
+	templates map[string]*template.Template
 }
 
-func NewChapter(svc *service.Service, tmpl *template.Template) *Chapter {
-	return &Chapter{svc: svc, tmpl: tmpl}
+func NewChapter(svc *service.Service, templates map[string]*template.Template) *Chapter {
+	return &Chapter{svc: svc, templates: templates}
 }
 
 func (c *Chapter) Download(w http.ResponseWriter, r *http.Request) {

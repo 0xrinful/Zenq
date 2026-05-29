@@ -12,10 +12,11 @@ import (
 	"github.com/0xrinful/Zenq/internal/models"
 )
 
-func (s *Source) Latest(ctx context.Context, page int) ([]models.Manga, error) {
+func (s *Source) Latest(ctx context.Context, page, size int) ([]models.Manga, error) {
 	payload := fmt.Sprintf(
-		"action=madara_load_more&page=%d&template=madara-core%%2Fcontent%%2Fcontent-archive&vars%%5Bpost_type%%5D=wp-manga&vars%%5Bpost_status%%5D=publish&vars%%5Bmeta_key%%5D=_latest_update&vars%%5Borderby%%5D=meta_value_num&vars%%5Border%%5D=desc",
+		"action=madara_load_more&page=%d&vars%%5Bposts_per_page%%5D=%d&template=madara-core%%2Fcontent%%2Fcontent-archive&vars%%5Bpost_type%%5D=wp-manga&vars%%5Bpost_status%%5D=publish&vars%%5Bmeta_key%%5D=_latest_update&vars%%5Borderby%%5D=meta_value_num&vars%%5Border%%5D=desc",
 		page-1,
+		size,
 	)
 
 	ajaxURL := fmt.Sprintf("%s/wp-admin/admin-ajax.php", baseURL)
