@@ -82,7 +82,10 @@ func (s *Store) ResolvePath(path string) (string, error) {
 		return "", fmt.Errorf("files: resolve path: %w", err)
 	}
 
-	if absPath == root || (absPath != root && !strings.HasPrefix(absPath, root+string(os.PathSeparator))) {
+	if absPath == root {
+		return "", fmt.Errorf("files: path outside root")
+	}
+	if !strings.HasPrefix(absPath, root+string(os.PathSeparator)) {
 		return "", fmt.Errorf("files: path outside root")
 	}
 
@@ -100,7 +103,10 @@ func (s *Store) ResolveFile(dir, name string) (string, error) {
 	}
 
 	path := filepath.Join(base, name)
-	if path == base || (path != base && !strings.HasPrefix(path, base+string(os.PathSeparator))) {
+	if path == base {
+		return "", fmt.Errorf("files: invalid file path")
+	}
+	if !strings.HasPrefix(path, base+string(os.PathSeparator)) {
 		return "", fmt.Errorf("files: invalid file path")
 	}
 

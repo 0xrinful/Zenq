@@ -65,7 +65,8 @@
           jump.addEventListener("change", () => {
             const value = jump.value;
             if (!base || value === "") return;
-            if (!Number.isFinite(Number(value))) return;
+            const number = parseFloat(value);
+            if (!Number.isFinite(number)) return;
             window.location.assign(base + encodeURIComponent(value));
           });
         }
