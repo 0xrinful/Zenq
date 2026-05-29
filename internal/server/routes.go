@@ -54,6 +54,7 @@ func routes(s *Server, secret string) *http.ServeMux {
 
 	mux.Handle("GET /sources", requireAuth(sources.Index))
 	mux.Handle("GET /sources/{id}", requireAuth(sources.Browse))
+	mux.Handle("GET /sources/{id}/browse-results", requireAuth(sources.BrowseResults))
 	mux.Handle("GET /sources/{id}/search", requireAuth(sources.Search))
 	mux.Handle("GET /sources/{id}/manga/{slug}", requireAuth(sources.MangaDetail))
 	mux.Handle("POST /sources/{id}/manga/{slug}/import", requireAuth(sources.Import))
