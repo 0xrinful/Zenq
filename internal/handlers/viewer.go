@@ -133,8 +133,8 @@ func (v *Viewer) Pages(w http.ResponseWriter, r *http.Request) {
 		if entry.IsDir() {
 			continue
 		}
-		name := url.PathEscape(entry.Name())
-		urls = append(urls, "/manga/"+sourceID+"/"+slug+"/ch/"+rawNum+"/img/"+name)
+		escapedName := url.PathEscape(entry.Name())
+		urls = append(urls, "/manga/"+sourceID+"/"+slug+"/ch/"+rawNum+"/img/"+escapedName)
 	}
 
 	writeJSON(w, http.StatusOK, PageResponse{URLs: urls})
