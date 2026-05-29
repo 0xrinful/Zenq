@@ -1,0 +1,19 @@
+{{define "storage-partial"}}
+<div class="font-mono text-xs text-dim uppercase tracking-widest mb-1">Storage</div>
+<div class="font-mono text-2xl text-neon-violet">{{.Used}}</div>
+{{if .TotalBytes}}
+<div class="mt-2 h-1.5 rounded bg-raised overflow-hidden">
+  <div class="h-full bg-neon-violet" style="width: {{printf "%.2f" .Percent}}%"></div>
+</div>
+<div class="mt-1 font-mono text-[10px] text-dim">of {{.Total}}</div>
+{{else}}
+<div class="mt-1 font-mono text-[10px] text-dim">used</div>
+{{end}}
+{{end}}
+
+{{define "flare-status-partial"}}
+<div id="flare-status" class="flex items-center gap-2 text-xs text-neon-green">
+  <span class="w-2 h-2 rounded-full bg-neon-green animate-pulse inline-block"></span>
+  Running
+</div>
+{{end}}

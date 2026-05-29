@@ -6,7 +6,7 @@
     <div class="flex gap-4 mb-8">
       {{/* Cover */}}
       <img
-        src="/static/covers/{{.Manga.SourceID}}/{{.Manga.Slug}}.jpg"
+        src="/manga/{{.Manga.SourceID}}/{{.Manga.Slug}}/cover"
         class="w-28 md:w-40 shrink-0 rounded object-cover self-start"
         onerror="this.src='/static/cover-placeholder.svg'"
       />
@@ -33,7 +33,7 @@
 
             <div
               id="action-menu"
-              class="hidden absolute right-0 top-full mt-1 w-72 bg-surface border border-border-dim rounded z-50 shadow-glow-blue animate-fade-up"
+              class="hidden fixed left-4 right-4 top-20 max-h-[80vh] overflow-y-auto bg-surface border border-border-dim rounded z-50 shadow-glow-blue animate-fade-up sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-1 sm:w-72"
             >
               {{template "action-menu" .}}
             </div>
