@@ -1,0 +1,86 @@
+{{template "base" .}}
+{{define "title"}}{{.Manga.Title}} — ZENQ{{end}}
+{{define "content"}}
+  <div class="px-4 py-6 md:px-8 max-w-3xl mx-auto">
+    {{/* TOP INFO SECTION */}}
+    <div class="flex gap-4 mb-8">
+      {{/* Cover */}}
+      <img
+        src="/static/covers/{{.Manga.SourceID}}/{{.Manga.Slug}}.jpg"
+        class="w-28 md:w-40 shrink-0 rounded object-cover self-start"
+        onerror="this.src='/static/cover-placeholder.svg'"
+      />
+
+      {{/* Info */}}
+      <div class="flex flex-col gap-2 flex-1 min-w-0">
+        <div class="flex items-start justify-between gap-2">
+          <h1 class="text-lg md:text-xl font-medium text-white leading-tight">{{.Manga.Title}}</h1>
+
+          {{/* Actions button */}}
+          <div class="relative shrink-0">
+            <button
+              id="action-menu-toggle"
+              type="button"
+              onclick="toggleActionMenu()"
+              class="btn-ghost text-xs flex items-center gap-1"
+              aria-expanded="false"
+            >
+              <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z" />
+              </svg>
+              Actions
+            </button>
+
+            <div
+              id="action-menu"
+              class="hidden absolute right-0 top-full mt-1 w-72 bg-surface border border-border-dim rounded z-50 shadow-glow-blue animate-fade-up"
+            >
+              {{template "action-menu" .}}
+            </div>
+          </div>
+        </div>
+
+        {{/* Status badge */}}
+        <span
+          class="text-xs font-mono px-2 py-0.5 rounded border w-fit
+            {{if eq .Manga.Status "ongoing"}}border-neon-green text-neon-green{{end}}
+            {{if eq .Manga.Status "completed"}}border-neon-violet text-neon-violet{{end}}
+            {{if eq .Manga.Status "hiatus"}}border-neon-amber text-neon-amber{{end}}"
+        >
+          {{.Manga.Status}}
+        </span>
+
+        {{/* Description — collapsible */}}
+        <div class="relative">
+          <p id="desc" class="text-sm text-dim leading-relaxed line-clamp-3">
+            {{.Manga.Description}}
+          </p>
+          <button onclick="toggleDesc()" class="text-xs text-neon-blue mt-1" id="desc-btn" type="button">
+            Show more
+          </button>
+        </div>
+
+        {{/* Genres */}}
+        <div class="flex flex-wrap gap-1 mt-1">
+          {{range .Manga.Genres}}
+            <span class="text-xs border border-border-dim text-dim px-2 py-0.5 rounded">{{.}}</span>
+          {{end}}
+        </div>
+      </div>
+    </div>
+
+    {{/* CHAPTER LIST HEADER */}}
+    <div class="flex items-center justify-between mb-3">
+      <span class="font-mono text-xs text-dim tracking-widest uppercase">
+        Chapters ({{len .Chapters}})
+      </span>
+    </div>
+
+    {{/* CHAPTER LIST */}}
+    <div id="chapter-list" class="flex flex-col divide-y divide-border-dim">
+      {{range .Chapters}}
+        {{template "chapter-row" (chapterRowData $.SourceID $.MangaSlug . $.ReadMarks)}}
+      {{end}}
+    </div>
+  </div>
+{{end}}

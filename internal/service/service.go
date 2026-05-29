@@ -39,3 +39,7 @@ func New(
 		packer:   packer.New(),
 	}
 }
+
+func (s *Service) Files() *files.Store {
+	return s.files
+}

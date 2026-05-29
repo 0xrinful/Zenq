@@ -50,6 +50,7 @@ func routes(s *Server, secret string) *http.ServeMux {
 
 	mux.Handle("GET /manga/{sourceID}/{slug}/ch/{num}", requireAuth(viewer.Page))
 	mux.Handle("GET /manga/{sourceID}/{slug}/ch/{num}/pages", requireAuth(viewer.Pages))
+	mux.Handle("GET /manga/{sourceID}/{slug}/ch/{num}/img/{file}", requireAuth(viewer.Image))
 
 	mux.Handle("GET /sources", requireAuth(sources.Index))
 	mux.Handle("GET /sources/{id}", requireAuth(sources.Browse))
