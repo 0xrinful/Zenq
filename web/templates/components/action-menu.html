@@ -8,7 +8,7 @@
           <form
             hx-post="{{.Endpoint}}"
             hx-ext="json-enc"
-            hx-on::after-request="handleActionResponse(event)"
+            hx-indicator=".htmx-spinner"
             class="flex flex-col gap-2"
           >
             <div class="flex gap-2">
@@ -21,13 +21,13 @@
             <label class="flex items-center gap-2 text-xs text-dim cursor-pointer">
               <input type="checkbox" name="force" class="accent-neon-blue" /> Force (re-run)
             </label>
-            <button type="submit" class="btn-primary text-xs py-1">▶ Run</button>
+            <button type="submit" class="btn-primary text-xs py-1" hx-disabled-elt="this">▶ Run</button>
           </form>
         {{else if .IsDelete}}
           <form
             hx-delete="{{.Endpoint}}"
             hx-ext="json-enc"
-            hx-on::after-request="handleActionResponse(event)"
+            hx-indicator=".htmx-spinner"
             class="flex flex-col gap-2"
           >
             <label class="flex items-center gap-2 text-xs cursor-pointer">
@@ -42,13 +42,14 @@
               <input type="checkbox" name="packed" class="accent-neon-red" />
               <span class="text-dim">Packed (.cbz)</span>
             </label>
-            <button type="submit" class="btn-danger text-xs py-1">Delete</button>
+            <button type="submit" class="btn-danger text-xs py-1" hx-disabled-elt="this">Delete</button>
           </form>
         {{else}}
           <button
             class="btn-ghost text-xs py-1 w-full"
             hx-post="{{.Endpoint}}"
-            hx-on::after-request="handleActionResponse(event)"
+            hx-indicator=".htmx-spinner"
+            hx-disabled-elt="this"
           >
             ↻ Sync Chapters
           </button>

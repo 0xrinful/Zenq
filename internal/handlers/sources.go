@@ -167,14 +167,11 @@ func (s *Sources) Import(w http.ResponseWriter, r *http.Request) {
 	slug := r.PathValue("slug")
 
 	if err := s.svc.ImportManga(r.Context(), sourceID, slug); err != nil {
-		if errors.Is(err, service.ErrUnknownSource) {
-			http.NotFound(w, r)
-			return
-		}
 		writeActionError(w, err)
 		return
 	}
 
+	writeToast(w, "Imported", "success")
 	w.Header().Set("Content-Type", "text/html")
 	_, _ = w.Write([]byte(fmt.Sprintf(`<div class="flex items-center gap-3">
   <span class="text-neon-green text-xs font-mono">✓ In Library</span>

@@ -1,0 +1,122 @@
+{{define "dashboard.html"}}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard — ZENQ</title>
+    <link rel="stylesheet" href="/static/output.css" />
+    <link rel="manifest" href="/static/manifest.json" />
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script defer src="/static/app.js"></script>
+  </head>
+  <body class="bg-base text-white font-mono min-h-screen">
+    <div class="min-h-screen md:flex">
+      {{/* Desktop sidebar */}}
+      <aside class="hidden md:flex md:flex-col w-60 bg-surface border-r border-border-dim p-4 gap-4">
+        <div class="text-lg font-semibold text-neon-blue">Zenq</div>
+        <nav class="flex flex-col gap-1">
+          {{template "nav-items" .}}
+        </nav>
+        <div class="mt-auto">
+          <form method="post" action="/logout">
+            <button class="btn-ghost w-full" type="submit">Logout</button>
+          </form>
+        </div>
+      </aside>
+
+      <div class="flex-1 min-w-0">
+        <main class="animate-fade-up px-4 py-6 pb-20 md:pb-6">
+          <div class="px-4 py-6 md:px-8 max-w-3xl mx-auto">
+            <header class="mb-6">
+              <h1 class="font-mono text-xs tracking-widest text-dim uppercase">Dashboard</h1>
+            </header>
+
+            {{/* STATS ROW */}}
+            <div class="grid grid-cols-3 gap-3 mb-6">
+              <div class="card p-4">
+                <div class="font-mono text-xs text-dim uppercase tracking-widest mb-1">Manga</div>
+                <div class="font-mono text-2xl text-neon-blue">{{.MangaCount}}</div>
+              </div>
+              <div class="card p-4" id="storage-card"
+                   hx-get="/api/storage" hx-trigger="load" hx-swap="innerHTML">
+                <div class="font-mono text-xs text-dim">Loading...</div>
+              </div>
+              <div class="card p-4" id="running-count"
+                   hx-get="/api/jobs?status=running&count=1" hx-trigger="every 3s" hx-swap="innerHTML">
+                <div class="font-mono text-xs text-dim uppercase tracking-widest mb-1">Running</div>
+                <div class="font-mono text-2xl text-neon-amber">{{.RunningCount}}</div>
+              </div>
+            </div>
+
+            {{/* FLARE SOLVER */}}
+            <div class="card p-4 mb-6">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="font-mono text-xs text-dim tracking-widest uppercase mb-1">FlareSolver</div>
+                  <div id="flare-status" class="flex items-center gap-2 text-xs text-dim">
+                    <span class="w-2 h-2 rounded-full bg-dim inline-block"></span>
+                    Stopped
+                  </div>
+                </div>
+                <button id="flare-btn" class="btn-ghost text-xs"
+                        hx-post="/api/flaresolver/start"
+                        hx-target="#flare-status"
+                        hx-swap="outerHTML"
+                        hx-disabled-elt="this"
+                        hx-indicator=".htmx-spinner">
+                  ▶ Start
+                </button>
+              </div>
+            </div>
+
+            {{/* JOBS PANEL */}}
+            <div class="card">
+              {{/* Filter tabs */}}
+              <div class="flex border-b border-border-dim" id="job-filters">
+                {{range (jobFilters .Counts)}}
+                <button onclick="filterJobs('{{.Status}}')"
+                        data-status="{{.Status}}"
+                        class="flex-1 py-3 font-mono text-xs transition-colors
+                               {{if .Active}}text-neon-blue border-b-2 border-neon-blue{{else}}text-dim hover:text-white{{end}}">
+                  {{.Label}} <span class="ml-1 opacity-70">{{.Count}}</span>
+                </button>
+                {{end}}
+              </div>
+
+              {{/* Job list — HTMX polls */}}
+              <div id="job-list"
+                   hx-get="/api/jobs"
+                   hx-trigger="load, every 3s"
+                   hx-swap="innerHTML">
+                {{template "jobs-list-partial" .InitialJobs}}
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    {{/* Mobile bottom bar */}}
+    <nav
+      class="md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-border-dim z-40 h-16"
+    >
+      <div class="grid grid-cols-4 h-full">
+        {{template "nav-items-mobile" .}}
+      </div>
+    </nav>
+
+
+    {{/* Global HTMX spinner */}}
+    <div class="htmx-indicator htmx-spinner fixed top-3 right-4 z-50">
+      <div class="w-4 h-4 border-2 border-neon-blue border-t-transparent rounded-full animate-spin"></div>
+    </div>
+
+    {{/* Toast container */}}
+    <div
+      id="toast-container"
+      class="fixed bottom-20 right-4 md:bottom-4 z-50 flex flex-col gap-2 pointer-events-none"
+    ></div>
+  </body>
+</html>
+{{end}}

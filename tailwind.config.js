@@ -1,6 +1,21 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ["./web/templates/**/*.html"],
+  content: ["./web/templates/**/*.html", "./web/static/**/*.js"],
+  safelist: [
+    "animate-glow-pulse",
+    "animate-pulse",
+    "border-l-2",
+    "border-neon-blue",
+    "border-neon-green",
+    "border-neon-red",
+    "border-border-dim",
+    "bg-neon-blue/5",
+    "bg-neon-red/5",
+    "bg-neon-blue",
+    "bg-neon-green",
+    "bg-neon-red",
+    "bg-dim",
+  ],
   theme: {
     extend: {
       colors: {

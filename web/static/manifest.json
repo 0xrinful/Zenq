@@ -1,0 +1,9 @@
+{
+  "name": "ZENQ",
+  "short_name": "ZENQ",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#08080f",
+  "theme_color": "#08080f",
+  "icons": [{ "src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+}
