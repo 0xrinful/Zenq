@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"sync"
 	"time"
@@ -41,11 +42,17 @@ type Requester struct {
 }
 
 func New(solver *flare.Solver, cfg sources.Config) *Requester {
-	return &Requester{
+	req := &Requester{
 		client: &http.Client{Timeout: 60 * time.Second},
 		solver: solver,
 		config: cfg,
 	}
+
+	if cfg.NeedsFlare {
+		go req.refreshSessionLoop(context.Background())
+	}
+
+	return req
 }
 
 func (r *Requester) Get(ctx context.Context, url string) (*http.Response, error) {
@@ -193,6 +200,31 @@ func (r *Requester) ensureSession(ctx context.Context, url string) error {
 	}
 
 	return r.refreshSession(ctx, url)
+}
+
+func (r *Requester) refreshSessionLoop(ctx context.Context) {
+	run := func() {
+		if err := r.refreshSession(ctx, r.config.CloudflareTestURL); err != nil {
+			slog.Warn("failed to refresh Cloudflare session",
+				"url", r.config.CloudflareTestURL,
+				"error", err,
+			)
+		}
+	}
+
+	run()
+
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			run()
+		}
+	}
 }
 
 func (r *Requester) refreshSession(ctx context.Context, url string) error {
