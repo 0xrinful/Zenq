@@ -1,0 +1,58 @@
+package server
+
+import (
+	"context"
+	"log/slog"
+	"net/http"
+	"time"
+)
+
+type contextKey string
+
+const userIDKey contextKey = "userID"
+
+func AuthRequired(secret string, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		session, err := GetSession(r, secret)
+		if err != nil || session == nil {
+			http.Redirect(w, r, "/login", http.StatusFound)
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), userIDKey, session.UserID)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+type statusWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (w *statusWriter) WriteHeader(status int) {
+	w.status = status
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *statusWriter) Write(p []byte) (int, error) {
+	if w.status == 0 {
+		w.status = http.StatusOK
+	}
+	return w.ResponseWriter.Write(p)
+}
+
+func WithLogging(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		sw := &statusWriter{ResponseWriter: w}
+		next.ServeHTTP(sw, r)
+		duration := time.Since(start)
+
+		status := sw.status
+		if status == 0 {
+			status = http.StatusOK
+		}
+
+		slog.Info("request", "method", r.Method, "path", r.URL.Path, "status", status, "duration", duration)
+	})
+}

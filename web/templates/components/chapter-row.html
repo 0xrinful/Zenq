@@ -1,0 +1,54 @@
+{{define "chapter-row"}}
+<div
+  class="group flex items-center justify-between gap-4 px-3 py-2 border-l-2 border-transparent hover:border-neon-blue transition
+    {{if .IsRead}}opacity-45 saturate-[0.3]{{end}}"
+>
+  <a
+    href="/manga/{{.SourceID}}/{{.MangaSlug}}/ch/{{.Chapter.Number}}"
+    class="flex-1 pointer-events-none"
+  >
+    <div class="pointer-events-auto">
+      <div class="font-mono text-sm font-medium">Ch. {{.Chapter.Number}}</div>
+      <div class="text-xs text-dim">{{.Chapter.ReleasedAt.Format "2006-01-02"}}</div>
+    </div>
+  </a>
+  <div class="flex items-center gap-2 pointer-events-auto">
+    {{if .Chapter.Downloaded}}
+      <span class="tag-d">D</span>
+    {{else}}
+      <span
+        class="tag-d-btn"
+        hx-post="/manga/{{.SourceID}}/{{.MangaSlug}}/ch/{{.Chapter.Number}}/download"
+        hx-target="closest div"
+        hx-swap="outerHTML"
+      >
+        D
+      </span>
+    {{end}}
+    {{if .Chapter.Optimized}}
+      <span class="tag-o">O</span>
+    {{else}}
+      <span
+        class="tag-o-btn"
+        hx-post="/manga/{{.SourceID}}/{{.MangaSlug}}/ch/{{.Chapter.Number}}/optimize"
+        hx-target="closest div"
+        hx-swap="outerHTML"
+      >
+        O
+      </span>
+    {{end}}
+    {{if .Chapter.Packed}}
+      <span class="tag-p">P</span>
+    {{else}}
+      <span
+        class="tag-p-btn"
+        hx-post="/manga/{{.SourceID}}/{{.MangaSlug}}/ch/{{.Chapter.Number}}/pack"
+        hx-target="closest div"
+        hx-swap="outerHTML"
+      >
+        P
+      </span>
+    {{end}}
+  </div>
+</div>
+{{end}}

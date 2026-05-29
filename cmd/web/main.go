@@ -1,48 +1,60 @@
 package main
 
 import (
-	"context"
+	"crypto/rand"
+	"encoding/base64"
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
-	"time"
 
-	"github.com/lmittmann/tint"
-
-	"github.com/0xrinful/Zenq/internal/requester"
+	"github.com/0xrinful/Zenq/internal/queue"
+	"github.com/0xrinful/Zenq/internal/registry"
 	"github.com/0xrinful/Zenq/internal/requester/flare"
-	"github.com/0xrinful/Zenq/internal/sources"
+	"github.com/0xrinful/Zenq/internal/server"
+	"github.com/0xrinful/Zenq/internal/service"
+	"github.com/0xrinful/Zenq/internal/storage/db"
+	"github.com/0xrinful/Zenq/internal/storage/files"
 )
 
 func main() {
-	logger := slog.New(tint.NewHandler(os.Stdout, &tint.Options{
-		Level:      slog.LevelDebug,
-		TimeFormat: time.Kitchen,
-	}))
-	slog.SetDefault(logger)
+	secret := os.Getenv("SECRET")
+	if secret == "" {
+		buf := make([]byte, 32)
+		if _, err := rand.Read(buf); err != nil {
+			log.Fatal(err)
+		}
+		secret = base64.StdEncoding.EncodeToString(buf)
+		slog.Warn("using generated secret for dev")
+	}
+	server.SetSessionSecret(secret)
 
-	solver := flare.NewSolver()
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "zenq.db"
+	}
 
-	requester := requester.New(solver, sources.Config{NeedsFlare: false})
+	filesRoot := os.Getenv("FILES_ROOT")
+	if filesRoot == "" {
+		filesRoot = "data"
+	}
+	if err := os.MkdirAll(filesRoot, 0o755); err != nil {
+		log.Fatal(err)
+	}
 
-	resp, err := requester.Get(
-		context.Background(),
-		"https://olympustaff.com/series/dcmkmk/171",
-	)
+	database, err := db.New(dbPath)
 	if err != nil {
-		slog.Error("request failed", "err", err)
-		return
+		log.Fatal(err)
 	}
 
-	defer resp.Body.Close()
+	fileStore := files.New(filesRoot)
+	solver := flare.NewSolver()
+	registry := registry.NewRegistry(solver)
+	queue := queue.NewQueue()
+	svc := service.New(registry, database, fileStore, queue)
 
-	if resp.StatusCode != http.StatusOK {
-		slog.Warn("non-200 response",
-			"status", resp.StatusCode,
-			"status_text", resp.Status,
-		)
-		return
-	}
+	srv := server.New(svc)
+	handler := server.WithLogging(srv)
 
-	slog.Info("request ok", "status", resp.StatusCode)
+	log.Fatal(http.ListenAndServe(":8080", handler))
 }

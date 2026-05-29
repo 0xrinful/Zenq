@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap");
+
+@layer base {
+  body {
+    background-color: #08080f;
+    color: #e8e8f0;
+  }
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0f0f1c;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #1e1e35;
+    border-radius: 2px;
+  }
+}
+
+@layer components {
+  /* Status tags */
+  .tag-d {
+    @apply font-mono text-[10px] border border-neon-blue text-neon-blue px-1 rounded-sm leading-tight;
+  }
+  .tag-o {
+    @apply font-mono text-[10px] border border-neon-violet text-neon-violet px-1 rounded-sm leading-tight;
+  }
+  .tag-p {
+    @apply font-mono text-[10px] border border-neon-green text-neon-green px-1 rounded-sm leading-tight;
+  }
+  /* Dashed = clickable action button */
+  .tag-d-btn {
+    @apply tag-d border-dashed opacity-50 cursor-pointer hover:opacity-100 hover:shadow-glow-blue transition-all;
+  }
+  .tag-o-btn {
+    @apply tag-o border-dashed opacity-50 cursor-pointer hover:opacity-100 hover:shadow-glow-violet transition-all;
+  }
+  .tag-p-btn {
+    @apply tag-p border-dashed opacity-50 cursor-pointer hover:opacity-100 hover:shadow-glow-green transition-all;
+  }
+  /* Inputs */
+  .input {
+    @apply bg-raised border border-border-dim rounded text-sm px-3 py-2 text-white placeholder-dim focus:outline-none focus:border-neon-blue focus:shadow-glow-blue transition-all w-full;
+  }
+  /* Buttons */
+  .btn-primary {
+    @apply border border-neon-blue text-neon-blue px-4 py-2 rounded text-sm hover:bg-neon-blue hover:text-base transition-all duration-200;
+  }
+  .btn-ghost {
+    @apply border border-border-dim text-dim px-4 py-2 rounded text-sm hover:border-neon-blue hover:text-neon-blue transition-all duration-200;
+  }
+  .btn-danger {
+    @apply border border-neon-red text-neon-red px-4 py-2 rounded text-sm bg-neon-red/5 hover:bg-neon-red/15 transition-all duration-200;
+  }
+  /* Cards */
+  .card {
+    @apply bg-surface border border-border-dim rounded transition-all duration-200 hover:border-neon-blue/40 hover:shadow-glow-blue;
+  }
+}

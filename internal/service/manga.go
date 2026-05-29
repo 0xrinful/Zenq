@@ -23,6 +23,12 @@ type MangaPageResult struct {
 	IsFavorite bool
 }
 
+type DeleteRequest struct {
+	Raw       bool `json:"raw"`
+	Optimized bool `json:"optimized"`
+	Packed    bool `json:"packed"`
+}
+
 func (s *Service) MangaPage(
 	ctx context.Context,
 	userID int,
@@ -155,6 +161,82 @@ func (s *Service) ImportManga(ctx context.Context, sourceID, slug string) error 
 		err = s.db.SaveChapter(models.ChapterRecord{Chapter: ch})
 		if err != nil {
 			return fmt.Errorf("service: save chapter: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) RefreshManga(sourceID, slug string) error {
+	ctx := context.Background()
+	manga, err := s.SourceManga(ctx, sourceID, slug)
+	if err != nil {
+		return err
+	}
+
+	existing, err := s.db.Manga(slug, sourceID)
+	if err != nil {
+		return err
+	}
+
+	if manga.Chapters == nil {
+		src, ok := s.registry.Source(sourceID)
+		if !ok {
+			return ErrUnknownSource
+		}
+		chapters, err := src.Chapters(ctx, slug)
+		if err != nil {
+			return fmt.Errorf("service: scrape chapters: %w", err)
+		}
+		manga.Chapters = chapters
+	}
+
+	addedAt := time.Now()
+	coverPath := ""
+	if existing != nil {
+		addedAt = existing.AddedAt
+		coverPath = existing.CoverPath
+	}
+
+	if err := s.db.SaveManga(models.MangaRecord{
+		Manga:     *manga,
+		CoverPath: coverPath,
+		AddedAt:   addedAt,
+		UpdatedAt: time.Now(),
+	}); err != nil {
+		return fmt.Errorf("service: save manga: %w", err)
+	}
+
+	for _, ch := range manga.Chapters {
+		if err := s.db.SaveChapter(models.ChapterRecord{Chapter: ch}); err != nil {
+			return fmt.Errorf("service: save chapter: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) DeleteMangaFiles(sourceID, slug string, req DeleteRequest) error {
+	chapters, err := s.db.Chapters(slug, sourceID)
+	if err != nil {
+		return err
+	}
+
+	for _, ch := range chapters {
+		if req.Raw {
+			if err := os.RemoveAll(s.files.ChapterDir(ch.Chapter)); err != nil && !os.IsNotExist(err) {
+				return fmt.Errorf("service: remove raw: %w", err)
+			}
+		}
+		if req.Optimized {
+			if err := os.RemoveAll(s.files.OptimizedDir(ch.Chapter)); err != nil && !os.IsNotExist(err) {
+				return fmt.Errorf("service: remove optimized: %w", err)
+			}
+		}
+		if req.Packed {
+			if err := os.Remove(s.files.CBZPath(ch.Chapter)); err != nil && !os.IsNotExist(err) {
+				return fmt.Errorf("service: remove packed: %w", err)
+			}
 		}
 	}
 

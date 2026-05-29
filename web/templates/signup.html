@@ -1,0 +1,24 @@
+{{template "auth" .}}
+{{define "title"}}Zenq — Sign Up{{end}}
+{{define "auth-content"}}
+  <div class="card p-6 space-y-4">
+    <div class="space-y-1">
+      <h1 class="text-lg font-semibold text-neon-blue">Create account</h1>
+      <p class="text-xs text-dim">Start building your offline manga vault.</p>
+    </div>
+    {{if .Error}}
+      <div class="text-xs text-neon-red border border-neon-red/40 bg-neon-red/10 rounded px-3 py-2">
+        {{.Error}}
+      </div>
+    {{end}}
+    <form method="post" action="/signup" class="space-y-3">
+      <input class="input" type="email" name="email" placeholder="Email" required />
+      <input class="input" type="password" name="password" placeholder="Password" required />
+      <button class="btn-primary w-full" type="submit">Create Account</button>
+    </form>
+  </div>
+  <p class="mt-4 text-center text-xs text-dim">
+    Have an account?
+    <a class="text-neon-blue hover:text-white transition-colors" href="/login">Login →</a>
+  </p>
+{{end}}
