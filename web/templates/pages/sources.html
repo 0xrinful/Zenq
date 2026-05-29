@@ -46,7 +46,7 @@
     <nav
       class="md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-border-dim z-40 h-16"
     >
-      <div class="grid grid-cols-4 h-full">
+      <div class="grid grid-cols-3 h-full">
         {{template "nav-items-mobile" .}}
       </div>
     </nav>
@@ -62,6 +62,14 @@
       id="toast-container"
       class="fixed bottom-20 right-4 md:bottom-4 z-50 flex flex-col gap-2 pointer-events-none"
     ></div>
+    <script>
+      document.addEventListener('htmx:beforeSwap', function(e) {
+        window._scrollY = window.scrollY;
+      });
+      document.addEventListener('htmx:afterSwap', function(e) {
+        window.scrollTo(0, window._scrollY);
+      });
+    </script>
   </body>
 </html>
 {{end}}
@@ -192,34 +200,40 @@
 
 {{define "browse-results-partial"}}
   {{if .Mangas}}
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+    {{if eq .Page 1}}
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4" style="scroll-anchor: none;">
+    {{end}}
+
       {{range .Mangas}}
-        <a href="/sources/{{$.SourceID}}/manga/{{.Slug}}" class="card block overflow-hidden">
+        <a href="/sources/{{$.SourceID}}/manga/{{.Slug}}" class="card block overflow-hidden flex flex-col">
           <div class="aspect-[3/4] bg-raised">
             {{if .CoverURL}}
-              <img
-                src="{{.CoverURL}}"
-                alt="{{.Title}}"
-                class="h-full w-full object-cover"
-                loading="lazy"
-                onerror="this.src='/static/cover-placeholder.svg'"
-              />
+              <img src="{{.CoverURL}}" alt="{{.Title}}" class="h-full w-full object-cover" loading="lazy" onerror="this.src='/static/cover-placeholder.svg'" />
             {{else}}
-              <img
-                src="/static/cover-placeholder.svg"
-                alt="{{.Title}}"
-                class="h-full w-full object-cover"
-                loading="lazy"
-              />
+              <img src="/static/cover-placeholder.svg" alt="{{.Title}}" class="h-full w-full object-cover" loading="lazy" />
             {{end}}
           </div>
-          <div class="-mt-10 px-3 pb-3 pt-6 bg-gradient-to-t from-base/80 via-base/40 to-transparent">
+          <div class="flex-1 flex items-center px-3 py-3 bg-gradient-to-t from-base/80 via-base/40 to-transparent">
             <h3 class="text-sm font-semibold leading-snug line-clamp-2">{{.Title}}</h3>
           </div>
         </a>
       {{end}}
+
+      {{$nextPage := add .Page 1}}
+      <div class="col-span-full h-12 flex items-center justify-center text-sm text-dim"
+           hx-get="/sources/{{$.SourceID}}/browse-results?page={{$nextPage}}"
+           hx-trigger="revealed"
+           hx-target="this"
+           hx-swap="outerHTML">
+        Loading more...
+      </div>
+
+    {{if eq .Page 1}}
     </div>
+    {{end}}
   {{else}}
-    <div class="text-sm text-dim">No results found.</div>
+    {{if eq .Page 1}}
+      <div class="text-sm text-dim">No results found.</div>
+    {{end}}
   {{end}}
 {{end}}

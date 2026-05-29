@@ -48,7 +48,7 @@
   }
   /* Buttons */
   .btn-primary {
-    @apply border border-neon-blue text-neon-blue px-4 py-2 rounded text-sm hover:bg-neon-blue hover:text-base transition-all duration-200;
+    @apply border border-neon-blue text-neon-blue px-4 py-2 rounded text-sm hover:bg-neon-blue hover:text-[#08080f] transition-all duration-200;
   }
   .btn-ghost {
     @apply border border-border-dim text-dim px-4 py-2 rounded text-sm hover:border-neon-blue hover:text-neon-blue transition-all duration-200;
