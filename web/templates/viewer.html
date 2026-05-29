@@ -27,7 +27,14 @@
             <a class="btn-ghost text-xs" href="/manga/{{.SourceID}}/{{.MangaSlug}}/ch/{{.NextChapter}}">Next</a>
           {{end}}
         </div>
-        <button type="button" class="btn-ghost text-xs" onclick="toggleViewerChrome()">Toggle</button>
+        <button
+          type="button"
+          class="btn-ghost text-xs"
+          onclick="toggleViewerChrome()"
+          aria-label="Toggle viewer controls"
+        >
+          Toggle controls
+        </button>
       </div>
       <div class="px-4 pb-4">
         <div class="flex items-center gap-2">
@@ -84,6 +91,15 @@
               img.decoding = "async";
               img.className = "w-full max-w-4xl cursor-pointer";
               img.addEventListener("click", toggleViewerChrome);
+              img.setAttribute("role", "button");
+              img.setAttribute("tabindex", "0");
+              img.setAttribute("aria-label", "Toggle viewer controls");
+              img.addEventListener("keydown", (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  toggleViewerChrome();
+                }
+              });
               container.appendChild(img);
             });
           })
