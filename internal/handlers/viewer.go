@@ -226,9 +226,14 @@ func (v *Viewer) writePageError(w http.ResponseWriter, r *http.Request, err erro
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {
+	data, err := json.Marshal(payload)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(payload)
+	_, _ = w.Write(data)
 }
 
 func chapterDir(chapter *models.ChapterRecord) (string, bool) {

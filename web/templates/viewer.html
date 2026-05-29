@@ -33,12 +33,13 @@
         <div class="flex items-center gap-2">
           <span class="text-xs text-dim">Jump ({{.TotalChapters}})</span>
           <select
+            id="chapter-jump"
+            data-base="/manga/{{.SourceID}}/{{.MangaSlug}}/ch/"
             class="input text-xs max-w-xs"
-            onchange="if (this.value) { window.location.href = this.value; }"
           >
             {{range .ChapterList}}
               <option
-                value="/manga/{{$.SourceID}}/{{$.MangaSlug}}/ch/{{.Number}}"
+                value="{{.Number}}"
                 {{if eq .Number $.ChapterNum}}selected{{end}}
               >
                 Ch. {{.Number}}
@@ -57,6 +58,17 @@
       (function () {
         const container = document.getElementById("viewer-pages");
         if (!container) return;
+        const jump = document.getElementById("chapter-jump");
+
+        if (jump) {
+          const base = jump.dataset.base || "";
+          jump.addEventListener("change", () => {
+            const value = jump.value;
+            if (!base || value === "") return;
+            if (!Number.isFinite(Number(value))) return;
+            window.location.assign(base + encodeURIComponent(value));
+          });
+        }
 
         fetch("/manga/{{.SourceID}}/{{.MangaSlug}}/ch/{{.ChapterNum}}/pages")
           .then((res) => {
@@ -74,7 +86,10 @@
               container.appendChild(img);
             });
           })
-          .catch(() => {});
+          .catch(() => {
+            container.textContent = "Failed to load pages.";
+            container.classList.add("text-neon-red", "text-xs", "justify-center");
+          });
       })();
     </script>
   </body>
