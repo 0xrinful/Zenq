@@ -4,6 +4,11 @@ document.body.addEventListener("htmx:afterRequest", function (evt) {
   if (hdr) showToast(JSON.parse(hdr));
 });
 
+function handleActionResponse(evt) {
+  const hdr = evt.detail.xhr.getResponseHeader("X-Toast");
+  if (hdr) showToast(JSON.parse(hdr));
+}
+
 function showToast({ message, type }) {
   const container = document.getElementById("toast-container");
   if (!container) return;
@@ -47,6 +52,16 @@ function toggleActionMenu() {
 
   const toggle = document.getElementById("action-menu-toggle");
   if (toggle) toggle.setAttribute("aria-expanded", String(isHidden));
+}
+
+function toggleDesc() {
+  const desc = document.getElementById("desc");
+  const btn = document.getElementById("desc-btn");
+  if (!desc || !btn) return;
+
+  const isClamped = desc.classList.contains("line-clamp-3");
+  desc.classList.toggle("line-clamp-3");
+  btn.textContent = isClamped ? "Show less" : "Show more";
 }
 
 // Chapter viewer chrome visibility (used in viewer.html)

@@ -2,8 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"html/template"
 	"net/http"
+	"sort"
 
 	"github.com/0xrinful/Zenq/internal/models"
 	"github.com/0xrinful/Zenq/internal/service"
@@ -21,92 +24,150 @@ type RangeRequest struct {
 	Force bool    `json:"force"`
 }
 
+type mangaPageData struct {
+	CurrentPath string
+	SourceID    string
+	MangaSlug   string
+	Manga       models.MangaRecord
+	Chapters    []models.ChapterRecord
+	ReadMarks   map[float64]bool
+}
+
 func NewManga(svc *service.Service, tmpl *template.Template) *Manga {
 	return &Manga{svc: svc, tmpl: tmpl}
 }
 
 func (m *Manga) Detail(w http.ResponseWriter, r *http.Request) {
-	writeTodo(w, r)
+	userID := getUserID(r.Context())
+	sourceID := r.PathValue("sourceID")
+	slug := r.PathValue("slug")
+
+	result, err := m.svc.MangaPage(r.Context(), userID, slug, sourceID)
+	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			http.NotFound(w, r)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	chapters := append([]models.ChapterRecord(nil), result.Chapters...)
+	sort.Slice(chapters, func(i, j int) bool {
+		return chapters[i].Number > chapters[j].Number
+	})
+
+	readMarks := make(map[float64]bool, len(result.ReadMarks))
+	for _, number := range result.ReadMarks {
+		readMarks[number] = true
+	}
+
+	renderTemplate(w, m.tmpl, "manga.html", mangaPageData{
+		CurrentPath: "library",
+		SourceID:    sourceID,
+		MangaSlug:   slug,
+		Manga:       *result.Manga,
+		Chapters:    chapters,
+		ReadMarks:   readMarks,
+	})
 }
 
 func (m *Manga) Download(w http.ResponseWriter, r *http.Request) {
+	noSwap(w)
+
 	var req RangeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeActionError(w, err)
 		return
 	}
 
 	rangeReq := models.ChapterRange{From: req.From, To: req.To, All: req.All, Force: req.Force}
 	sourceID := r.PathValue("sourceID")
 	slug := r.PathValue("slug")
-	if _, err := m.svc.DownloadRange(r.Context(), sourceID, slug, rangeReq); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	jobIDs, err := m.svc.DownloadRange(r.Context(), sourceID, slug, rangeReq)
+	if err != nil {
+		writeActionError(w, err)
 		return
 	}
 
-	writeTodo(w, r)
+	writeToast(w, fmt.Sprintf("Download queued (%d jobs)", len(jobIDs)), "success")
+	w.WriteHeader(http.StatusOK)
 }
 
 func (m *Manga) Optimize(w http.ResponseWriter, r *http.Request) {
+	noSwap(w)
+
 	var req RangeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeActionError(w, err)
 		return
 	}
 
 	rangeReq := models.ChapterRange{From: req.From, To: req.To, All: req.All, Force: req.Force}
 	sourceID := r.PathValue("sourceID")
 	slug := r.PathValue("slug")
-	if _, err := m.svc.OptimizeRange(r.Context(), sourceID, slug, rangeReq); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	jobIDs, err := m.svc.OptimizeRange(r.Context(), sourceID, slug, rangeReq)
+	if err != nil {
+		writeActionError(w, err)
 		return
 	}
 
-	writeTodo(w, r)
+	writeToast(w, fmt.Sprintf("Optimize queued (%d jobs)", len(jobIDs)), "success")
+	w.WriteHeader(http.StatusOK)
 }
 
 func (m *Manga) Pack(w http.ResponseWriter, r *http.Request) {
+	noSwap(w)
+
 	var req RangeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeActionError(w, err)
 		return
 	}
 
 	rangeReq := models.ChapterRange{From: req.From, To: req.To, All: req.All, Force: req.Force}
 	sourceID := r.PathValue("sourceID")
 	slug := r.PathValue("slug")
-	if _, err := m.svc.PackRange(r.Context(), sourceID, slug, rangeReq); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	jobIDs, err := m.svc.PackRange(r.Context(), sourceID, slug, rangeReq)
+	if err != nil {
+		writeActionError(w, err)
 		return
 	}
 
-	writeTodo(w, r)
+	writeToast(w, fmt.Sprintf("Pack queued (%d jobs)", len(jobIDs)), "success")
+	w.WriteHeader(http.StatusOK)
 }
 
 func (m *Manga) Refresh(w http.ResponseWriter, r *http.Request) {
+	noSwap(w)
+
 	sourceID := r.PathValue("sourceID")
 	slug := r.PathValue("slug")
 	if err := m.svc.RefreshManga(sourceID, slug); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeActionError(w, err)
 		return
 	}
 
-	writeTodo(w, r)
+	writeToast(w, "Sync started", "success")
+	w.WriteHeader(http.StatusOK)
 }
 
 func (m *Manga) DeleteFiles(w http.ResponseWriter, r *http.Request) {
+	noSwap(w)
+
 	var req service.DeleteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeActionError(w, err)
 		return
 	}
 
 	sourceID := r.PathValue("sourceID")
 	slug := r.PathValue("slug")
 	if err := m.svc.DeleteMangaFiles(sourceID, slug, req); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeActionError(w, err)
 		return
 	}
 
-	writeTodo(w, r)
+	writeToast(w, "Files deleted", "success")
+	w.WriteHeader(http.StatusOK)
 }

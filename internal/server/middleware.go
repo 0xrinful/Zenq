@@ -5,11 +5,9 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/0xrinful/Zenq/internal/contextkeys"
 )
-
-type contextKey string
-
-const userIDKey contextKey = "userID"
 
 func AuthRequired(secret string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -19,7 +17,7 @@ func AuthRequired(secret string, next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), userIDKey, session.UserID)
+		ctx := context.WithValue(r.Context(), contextkeys.UserID, int(session.UserID))
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
