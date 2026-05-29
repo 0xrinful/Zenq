@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{.MangaTitle}} — Chapter {{.ChapterNum}}</title>
+    <link rel="stylesheet" href="/static/output.css" />
+    <script defer src="/static/app.js"></script>
+  </head>
+  <body class="bg-base text-white font-mono min-h-screen">
+    {{/* TOP CHROME */}}
+    <div
+      id="viewer-chrome"
+      class="fixed top-0 left-0 right-0 z-40 bg-surface/95 border-b border-border-dim backdrop-blur transition-all"
+    >
+      <div class="flex items-center justify-between gap-4 px-4 py-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <a href="/manga/{{.SourceID}}/{{.MangaSlug}}" class="btn-ghost text-xs">Back</a>
+          <div class="text-sm font-medium truncate">{{.MangaTitle}}</div>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          {{if gt .PrevChapter 0.0}}
+            <a class="btn-ghost text-xs" href="/manga/{{.SourceID}}/{{.MangaSlug}}/ch/{{.PrevChapter}}">Prev</a>
+          {{end}}
+          <span class="text-dim">Ch. {{.ChapterNum}}</span>
+          {{if gt .NextChapter 0.0}}
+            <a class="btn-ghost text-xs" href="/manga/{{.SourceID}}/{{.MangaSlug}}/ch/{{.NextChapter}}">Next</a>
+          {{end}}
+        </div>
+        <button type="button" class="btn-ghost text-xs" onclick="toggleViewerChrome()">Toggle</button>
+      </div>
+      <div class="px-4 pb-4">
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-dim">Jump ({{.TotalChapters}})</span>
+          <select
+            class="input text-xs max-w-xs"
+            onchange="if (this.value) { window.location.href = this.value; }"
+          >
+            {{range .ChapterList}}
+              <option
+                value="/manga/{{$.SourceID}}/{{$.MangaSlug}}/ch/{{.Number}}"
+                {{if eq .Number $.ChapterNum}}selected{{end}}
+              >
+                Ch. {{.Number}}
+              </option>
+            {{end}}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <main class="pt-24 pb-10">
+      <div id="viewer-pages" class="flex flex-col items-center gap-4 px-2"></div>
+    </main>
+
+    <script>
+      (function () {
+        const container = document.getElementById("viewer-pages");
+        if (!container) return;
+
+        fetch("/manga/{{.SourceID}}/{{.MangaSlug}}/ch/{{.ChapterNum}}/pages")
+          .then((res) => {
+            if (!res.ok) throw new Error("Failed to load pages");
+            return res.json();
+          })
+          .then((data) => {
+            (data.urls || []).forEach((url) => {
+              const img = document.createElement("img");
+              img.src = url;
+              img.loading = "lazy";
+              img.decoding = "async";
+              img.className = "w-full max-w-4xl cursor-pointer";
+              img.addEventListener("click", toggleViewerChrome);
+              container.appendChild(img);
+            });
+          })
+          .catch(() => {});
+      })();
+    </script>
+  </body>
+</html>
