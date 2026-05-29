@@ -55,3 +55,11 @@ func (r *Registry) AllSources() []sources.Source {
 	}
 	return sources
 }
+
+func (r *Registry) Sources() []sources.SourceInfo {
+	infos := make([]sources.SourceInfo, 0, len(r.sources))
+	for _, s := range r.sources {
+		infos = append(infos, s.Info())
+	}
+	return infos
+}

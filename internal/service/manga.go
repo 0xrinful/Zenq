@@ -10,6 +10,7 @@ import (
 
 	"github.com/0xrinful/Zenq/internal/models"
 	"github.com/0xrinful/Zenq/internal/queue"
+	"github.com/0xrinful/Zenq/internal/sources"
 )
 
 func (s *Service) Library(ctx context.Context, userID int) ([]models.MangaRecord, error) {
@@ -96,6 +97,18 @@ func (s *Service) SourceManga(ctx context.Context, sourceID, slug string) (*mode
 		return nil, ErrUnknownSource
 	}
 	return src.Manga(ctx, slug)
+}
+
+func (s *Service) Sources() []sources.SourceInfo {
+	return s.registry.Sources()
+}
+
+func (s *Service) SourceInfo(sourceID string) (sources.SourceInfo, bool) {
+	src, ok := s.registry.Source(sourceID)
+	if !ok {
+		return sources.SourceInfo{}, false
+	}
+	return src.Info(), true
 }
 
 func extractExt(rawURL string) string {

@@ -1,0 +1,210 @@
+{{define "sources-list"}}{{template "sources-layout" .}}{{end}}
+{{define "source-browse"}}{{template "sources-layout" .}}{{end}}
+{{define "source-manga-detail"}}{{template "sources-layout" .}}{{end}}
+
+{{define "sources-layout"}}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{if .PageTitle}}{{.PageTitle}}{{else}}Zenq{{end}}</title>
+    <link rel="stylesheet" href="/static/output.css" />
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script defer src="/static/app.js"></script>
+  </head>
+  <body class="bg-base text-white font-mono min-h-screen">
+    <div class="min-h-screen md:flex">
+      {{/* Desktop sidebar */}}
+      <aside class="hidden md:flex md:flex-col w-60 bg-surface border-r border-border-dim p-4 gap-4">
+        <div class="text-lg font-semibold text-neon-blue">Zenq</div>
+        <nav class="flex flex-col gap-1">
+          {{template "nav-items" .}}
+        </nav>
+        <div class="mt-auto">
+          <form method="post" action="/logout">
+            <button class="btn-ghost w-full" type="submit">Logout</button>
+          </form>
+        </div>
+      </aside>
+
+      <div class="flex-1 min-w-0">
+        <main class="animate-fade-up px-4 py-6 pb-24 md:pb-6">
+          {{if .BodyTemplate}}{{template .BodyTemplate .}}{{end}}
+        </main>
+      </div>
+    </div>
+
+    {{/* Mobile bottom bar */}}
+    <nav
+      class="md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-border-dim z-40 h-16"
+    >
+      <div class="grid grid-cols-4 h-full">
+        {{template "nav-items-mobile" .}}
+      </div>
+    </nav>
+
+    {{/* Toast container */}}
+    <div
+      id="toast-container"
+      class="fixed bottom-20 right-4 md:bottom-4 z-50 flex flex-col gap-2 pointer-events-none"
+    ></div>
+  </body>
+</html>
+{{end}}
+
+{{define "sources-list-body"}}
+  <div class="max-w-6xl mx-auto">
+    <div class="flex items-center justify-between mb-4">
+      <h1 class="text-lg font-semibold">Sources</h1>
+    </div>
+    {{if .Sources}}
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        {{range .Sources}}
+          <a
+            href="/sources/{{.ID}}"
+            class="card border border-border-dim p-4 flex items-center justify-center text-sm font-semibold text-dim hover:text-white hover:border-neon-blue transition-colors"
+          >
+            {{.Name}}
+          </a>
+        {{end}}
+      </div>
+    {{else}}
+      <div class="text-sm text-dim">No sources available.</div>
+    {{end}}
+  </div>
+{{end}}
+
+{{define "source-browse-body"}}
+  <div class="max-w-6xl mx-auto">
+    <div class="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
+      <h1 class="text-lg font-semibold">{{.SourceName}}</h1>
+      <input
+        class="input text-xs w-full sm:max-w-xs"
+        type="search"
+        name="q"
+        placeholder="Search titles..."
+        hx-get="/sources/{{.SourceID}}/search"
+        hx-trigger="input changed delay:400ms"
+        hx-include="[name='q']"
+        hx-target="#results"
+      />
+    </div>
+    <div
+      id="results"
+      hx-get="/sources/{{.SourceID}}/browse-results"
+      hx-trigger="load"
+      hx-target="#results"
+      hx-swap="innerHTML"
+    >
+      <div class="text-sm text-dim">Loading...</div>
+    </div>
+  </div>
+{{end}}
+
+{{define "source-manga-detail-body"}}
+  <div class="px-4 py-6 md:px-8 max-w-3xl mx-auto">
+    {{/* TOP INFO SECTION */}}
+    <div class="flex gap-4 mb-8">
+      {{/* Cover */}}
+      <img
+        src="{{.Manga.CoverURL}}"
+        class="w-28 md:w-40 shrink-0 rounded object-cover self-start"
+        onerror="this.src='/static/cover-placeholder.svg'"
+      />
+
+      {{/* Info */}}
+      <div class="flex flex-col gap-2 flex-1 min-w-0">
+        <div class="flex items-start justify-between gap-2">
+          <h1 class="text-lg md:text-xl font-medium text-white leading-tight">{{.Manga.Title}}</h1>
+
+          {{/* Import button */}}
+          <div class="shrink-0">
+            {{if .InLibrary}}
+              <div class="flex items-center gap-3">
+                <span class="text-neon-green text-xs font-mono">✓ In Library</span>
+                <a href="/manga/{{.SourceID}}/{{.Manga.Slug}}" class="btn-ghost text-xs">View →</a>
+              </div>
+            {{else}}
+              <button
+                class="btn-primary text-xs"
+                hx-post="/sources/{{.SourceID}}/manga/{{.Manga.Slug}}/import"
+                hx-target="this"
+                hx-swap="outerHTML"
+              >
+                Import
+              </button>
+            {{end}}
+          </div>
+        </div>
+
+        {{/* Status badge */}}
+        {{if .Manga.Status}}
+          <span
+            class="text-xs font-mono px-2 py-0.5 rounded border w-fit
+              {{if eq .Manga.Status "ongoing"}}border-neon-green text-neon-green{{end}}
+              {{if eq .Manga.Status "completed"}}border-neon-violet text-neon-violet{{end}}
+              {{if eq .Manga.Status "hiatus"}}border-neon-amber text-neon-amber{{end}}"
+          >
+            {{.Manga.Status}}
+          </span>
+        {{end}}
+
+        {{/* Description — collapsible */}}
+        {{if .Manga.Description}}
+          <div class="relative">
+            <p id="desc" class="text-sm text-dim leading-relaxed line-clamp-3">
+              {{.Manga.Description}}
+            </p>
+            <button onclick="toggleDesc()" class="text-xs text-neon-blue mt-1" id="desc-btn" type="button">
+              Show more
+            </button>
+          </div>
+        {{end}}
+
+        {{/* Genres */}}
+        {{if .Manga.Genres}}
+          <div class="flex flex-wrap gap-1 mt-1">
+            {{range .Manga.Genres}}
+              <span class="text-xs border border-border-dim text-dim px-2 py-0.5 rounded">{{.}}</span>
+            {{end}}
+          </div>
+        {{end}}
+      </div>
+    </div>
+  </div>
+{{end}}
+
+{{define "browse-results-partial"}}
+  {{if .Mangas}}
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      {{range .Mangas}}
+        <a href="/sources/{{$.SourceID}}/manga/{{.Slug}}" class="card block overflow-hidden">
+          <div class="aspect-[3/4] bg-raised">
+            {{if .CoverURL}}
+              <img
+                src="{{.CoverURL}}"
+                alt="{{.Title}}"
+                class="h-full w-full object-cover"
+                loading="lazy"
+                onerror="this.src='/static/cover-placeholder.svg'"
+              />
+            {{else}}
+              <img
+                src="/static/cover-placeholder.svg"
+                alt="{{.Title}}"
+                class="h-full w-full object-cover"
+                loading="lazy"
+              />
+            {{end}}
+          </div>
+          <div class="-mt-10 px-3 pb-3 pt-6 bg-gradient-to-t from-base/80 via-base/40 to-transparent">
+            <h3 class="text-sm font-semibold leading-snug line-clamp-2">{{.Title}}</h3>
+          </div>
+        </a>
+      {{end}}
+    </div>
+  {{else}}
+    <div class="text-sm text-dim">No results found.</div>
+  {{end}}
+{{end}}
