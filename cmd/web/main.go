@@ -7,6 +7,9 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"path/filepath"
+
+	"github.com/joho/godotenv"
 
 	"github.com/0xrinful/Zenq/internal/queue"
 	"github.com/0xrinful/Zenq/internal/registry"
@@ -18,6 +21,16 @@ import (
 )
 
 func main() {
+	if err := godotenv.Load(); err != nil {
+		slog.Warn("No .env file found")
+	}
+
+	tlsCertPath := os.Getenv("TLS_CERT_PATH")
+	tlsKeyPath := os.Getenv("TLS_KEY_PATH")
+	if tlsCertPath == "" || tlsKeyPath == "" {
+		log.Fatal("missing TLS certificate path")
+	}
+
 	secret := os.Getenv("SECRET")
 	if secret == "" {
 		buf := make([]byte, 32)
@@ -32,6 +45,10 @@ func main() {
 	dbPath := os.Getenv("DB_PATH")
 	if dbPath == "" {
 		dbPath = "zenq.db"
+	} else {
+		if err := os.MkdirAll(filepath.Dir(dbPath), 0o755); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	filesRoot := os.Getenv("FILES_ROOT")
@@ -56,5 +73,5 @@ func main() {
 	srv := server.New(svc)
 	handler := server.WithLogging(srv)
 
-	log.Fatal(http.ListenAndServe(":8080", handler))
+	log.Fatal(http.ListenAndServeTLS(":8000", tlsCertPath, tlsKeyPath, handler))
 }
