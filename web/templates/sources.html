@@ -10,6 +10,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{{if .PageTitle}}{{.PageTitle}}{{else}}Zenq{{end}}</title>
     <link rel="stylesheet" href="/static/output.css" />
+    <link rel="manifest" href="/static/manifest.json" />
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
     <script defer src="/static/app.js"></script>
   </head>
@@ -29,8 +30,14 @@
       </aside>
 
       <div class="flex-1 min-w-0">
-        <main class="animate-fade-up px-4 py-6 pb-24 md:pb-6">
-          {{if .BodyTemplate}}{{template .BodyTemplate .}}{{end}}
+        <main class="animate-fade-up px-4 py-6 pb-20 md:pb-6">
+          {{if eq .BodyTemplate "sources-list-body"}}
+            {{template "sources-list-body" .}}
+          {{else if eq .BodyTemplate "source-browse-body"}}
+            {{template "source-browse-body" .}}
+          {{else if eq .BodyTemplate "source-manga-detail-body"}}
+            {{template "source-manga-detail-body" .}}
+          {{end}}
         </main>
       </div>
     </div>
@@ -43,6 +50,12 @@
         {{template "nav-items-mobile" .}}
       </div>
     </nav>
+
+
+    {{/* Global HTMX spinner */}}
+    <div class="htmx-indicator htmx-spinner fixed top-3 right-4 z-50">
+      <div class="w-4 h-4 border-2 border-neon-blue border-t-transparent rounded-full animate-spin"></div>
+    </div>
 
     {{/* Toast container */}}
     <div
@@ -108,7 +121,7 @@
     <div class="flex gap-4 mb-8">
       {{/* Cover */}}
       <img
-        src="{{.Manga.CoverURL}}"
+        src="{{if .InLibrary}}/manga/{{.SourceID}}/{{.Manga.Slug}}/cover{{else}}{{.Manga.CoverURL}}{{end}}"
         class="w-28 md:w-40 shrink-0 rounded object-cover self-start"
         onerror="this.src='/static/cover-placeholder.svg'"
       />
@@ -131,6 +144,8 @@
                 hx-post="/sources/{{.SourceID}}/manga/{{.Manga.Slug}}/import"
                 hx-target="this"
                 hx-swap="outerHTML"
+                hx-disabled-elt="this"
+                hx-indicator=".htmx-spinner"
               >
                 Import
               </button>

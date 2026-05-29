@@ -35,8 +35,9 @@ func routes(s *Server, secret string) *http.ServeMux {
 		return AuthRequired(secret, h)
 	}
 
-	mux.Handle("GET /", requireAuth(library.Index))
+	mux.Handle("GET /{$}", requireAuth(library.Index))
 	mux.Handle("GET /manga/{sourceID}/{slug}", requireAuth(manga.Detail))
+	mux.Handle("GET /manga/{sourceID}/{slug}/cover", requireAuth(manga.Cover))
 	mux.Handle("POST /manga/{sourceID}/{slug}/download", requireAuth(manga.Download))
 	mux.Handle("POST /manga/{sourceID}/{slug}/optimize", requireAuth(manga.Optimize))
 	mux.Handle("POST /manga/{sourceID}/{slug}/pack", requireAuth(manga.Pack))

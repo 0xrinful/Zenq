@@ -21,6 +21,8 @@
         hx-post="/manga/{{.SourceID}}/{{.MangaSlug}}/ch/{{.Chapter.Number}}/download"
         hx-target="closest div"
         hx-swap="outerHTML"
+        hx-disabled-elt="this"
+        hx-indicator=".htmx-spinner"
       >
         D
       </span>
@@ -33,6 +35,8 @@
         hx-post="/manga/{{.SourceID}}/{{.MangaSlug}}/ch/{{.Chapter.Number}}/optimize"
         hx-target="closest div"
         hx-swap="outerHTML"
+        hx-disabled-elt="this"
+        hx-indicator=".htmx-spinner"
       >
         O
       </span>
@@ -45,6 +49,8 @@
         hx-post="/manga/{{.SourceID}}/{{.MangaSlug}}/ch/{{.Chapter.Number}}/pack"
         hx-target="closest div"
         hx-swap="outerHTML"
+        hx-disabled-elt="this"
+        hx-indicator=".htmx-spinner"
       >
         P
       </span>

@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/0xrinful/Zenq/internal/models"
 	"github.com/0xrinful/Zenq/internal/service"
@@ -70,6 +73,61 @@ func (m *Manga) Detail(w http.ResponseWriter, r *http.Request) {
 		Chapters:    chapters,
 		ReadMarks:   readMarks,
 	})
+}
+
+func (m *Manga) Cover(w http.ResponseWriter, r *http.Request) {
+	userID := getUserID(r.Context())
+	sourceID := r.PathValue("sourceID")
+	slug := r.PathValue("slug")
+
+	result, err := m.svc.MangaPage(r.Context(), userID, slug, sourceID)
+	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			http.NotFound(w, r)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if result.Manga == nil || result.Manga.CoverPath == "" {
+		http.NotFound(w, r)
+		return
+	}
+
+	coverPath, err := m.svc.Files().ResolvePath(result.Manga.CoverPath)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	file, err := os.Open(coverPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			http.NotFound(w, r)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer file.Close()
+
+	info, err := file.Stat()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if info.IsDir() {
+		http.NotFound(w, r)
+		return
+	}
+
+	switch strings.ToLower(filepath.Ext(coverPath)) {
+	case ".png":
+		w.Header().Set("Content-Type", "image/png")
+	default:
+		w.Header().Set("Content-Type", "image/jpeg")
+	}
+	http.ServeContent(w, r, info.Name(), info.ModTime(), file)
 }
 
 func (m *Manga) Download(w http.ResponseWriter, r *http.Request) {

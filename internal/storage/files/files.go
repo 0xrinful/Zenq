@@ -18,6 +18,10 @@ func New(root string) *Store {
 	return &Store{root: root}
 }
 
+func (s *Store) Root() string {
+	return s.root
+}
+
 func (s *Store) ChapterDir(chapter models.Chapter) string {
 	name := chapterDirName(chapter.Number)
 	dir := filepath.Join(s.root, chapter.SourceID, chapter.MangaSlug, name, "raw")
