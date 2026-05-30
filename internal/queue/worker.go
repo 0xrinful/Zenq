@@ -95,8 +95,8 @@ func (w *Worker) process(ctx context.Context, job *Job) {
 		}
 
 	case JobOptimize:
-		if err := w.files.EnsureDir(job.DestDir); err != nil {
-			err = err
+		if e := w.files.EnsureDir(job.DestDir); e != nil {
+			err = e
 			break
 		}
 

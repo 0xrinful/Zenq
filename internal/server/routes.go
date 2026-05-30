@@ -71,6 +71,7 @@ func routes(s *Server, secret string) *http.ServeMux {
 	mux.Handle("GET /api/jobs/{id}", requireAuth(dashboard.JobDetail))
 	mux.Handle("GET /api/storage", requireAuth(dashboard.Storage))
 	mux.Handle("POST /api/flaresolver/start", requireAuth(dashboard.StartFlareSolver))
+	mux.Handle("POST /api/flaresolver/stop", requireAuth(dashboard.StopFlareSolver))
 
 	return mux
 }

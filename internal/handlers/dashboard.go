@@ -43,11 +43,12 @@ type jobCounts struct {
 }
 
 type dashboardPageData struct {
-	CurrentPath  string
-	MangaCount   int
-	RunningCount int
-	Counts       jobCounts
-	InitialJobs  jobsListData
+	CurrentPath    string
+	MangaCount     int
+	RunningCount   int
+	Counts         jobCounts
+	InitialJobs    jobsListData
+	IsFlareRunning bool
 }
 
 type storagePartialData struct {
@@ -97,11 +98,12 @@ func (d *Dashboard) Page(w http.ResponseWriter, r *http.Request) {
 	}
 
 	renderTemplate(w, d.templates, "dashboard.html", dashboardPageData{
-		CurrentPath:  "dashboard",
-		MangaCount:   len(mangas),
-		RunningCount: counts.Running,
-		Counts:       counts,
-		InitialJobs:  jobsListData{Jobs: describeJobs(jobs), Expanded: 0},
+		CurrentPath:    "dashboard",
+		MangaCount:     len(mangas),
+		RunningCount:   counts.Running,
+		Counts:         counts,
+		InitialJobs:    jobsListData{Jobs: describeJobs(jobs), Expanded: 0},
+		IsFlareRunning: IsFlareRunning(),
 	})
 }
 
@@ -166,12 +168,23 @@ func (d *Dashboard) Storage(w http.ResponseWriter, r *http.Request) {
 	renderTemplateName(w, d.templates, "dashboard.html", "storage-partial", data)
 }
 
-func (d *Dashboard) StartFlareSolver(w http.ResponseWriter, r *http.Request) {
+func IsFlareRunning() bool {
 	cmd := exec.Command(
-		"docker", "run", "-d", "--rm", "-p", "8191:8191",
-		"--name", "flaresolverr",
-		"ghcr.io/flaresolverr/flaresolverr:latest",
+		"docker", "inspect", "-f",
+		"{{.State.Running}}",
+		"flaresolverr",
 	)
+
+	out, err := cmd.Output()
+	if err != nil {
+		return false
+	}
+
+	return strings.TrimSpace(string(out)) == "true"
+}
+
+func (d *Dashboard) StartFlareSolver(w http.ResponseWriter, r *http.Request) {
+	cmd := exec.Command("docker", "start", "flaresolverr")
 	if output, err := cmd.CombinedOutput(); err != nil {
 		message := strings.TrimSpace(string(output))
 		if message == "" {
@@ -183,7 +196,23 @@ func (d *Dashboard) StartFlareSolver(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeToast(w, "FlareSolver started", "success")
-	renderTemplateName(w, d.templates, "dashboard.html", "flare-status-partial", nil)
+	renderTemplateName(w, d.templates, "dashboard.html", "flare-status-partial-running", nil)
+}
+
+func (d *Dashboard) StopFlareSolver(w http.ResponseWriter, r *http.Request) {
+	cmd := exec.Command("docker", "stop", "flaresolverr")
+	if output, err := cmd.CombinedOutput(); err != nil {
+		message := strings.TrimSpace(string(output))
+		if message == "" {
+			message = err.Error()
+		}
+		writeToast(w, message, "error")
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		return
+	}
+
+	writeToast(w, "FlareSolver stopped", "success")
+	renderTemplateName(w, d.templates, "dashboard.html", "flare-status-partial-stopped", nil)
 }
 
 func describeJobs(jobs []*queue.Job) []jobDesc {

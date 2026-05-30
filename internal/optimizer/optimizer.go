@@ -6,6 +6,7 @@ import (
 	"image"
 	_ "image/jpeg"
 	_ "image/png"
+	"io"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -32,12 +33,29 @@ func (o *Optimizer) OptimizeChapter(ctx context.Context, chapterDir, optimizedDi
 	for _, p := range pages {
 		inputPath := filepath.Join(chapterDir, p.Name())
 
+		if filepath.Ext(inputPath) == ".webp" {
+			outputPath := filepath.Join(optimizedDir, fmt.Sprintf("%03d.webp", nextIndex))
+			if err := copyFile(inputPath, outputPath); err != nil {
+				errs = append(errs, fmt.Errorf("%s: %w", p.Name(), err))
+				slog.Error(
+					"optimizer failed to copy webp",
+					"name", p.Name(),
+					"err", err,
+				)
+				continue
+			}
+
+			nextIndex++
+			continue
+		}
+
 		file, err := os.Open(inputPath)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("%s (failed to open): %w", p.Name(), err))
 			slog.Error("optimizer failed to open", "name", p.Name(), "err", err)
 			continue
 		}
+
 		imgConfig, _, err := image.DecodeConfig(file)
 		file.Close()
 
@@ -142,4 +160,21 @@ func runCwebp(ctx context.Context, input, output string) error {
 	}
 
 	return nil
+}
+
+func copyFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, in)
+	return err
 }

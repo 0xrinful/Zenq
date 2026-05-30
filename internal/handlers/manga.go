@@ -21,10 +21,39 @@ type Manga struct {
 }
 
 type RangeRequest struct {
-	From  float64 `json:"from"`
-	To    float64 `json:"to"`
-	All   bool    `json:"all"`
-	Force bool    `json:"force"`
+	From  float64
+	To    float64
+	All   bool
+	Force bool
+}
+
+func (req *RangeRequest) Parse(r *http.Request) error {
+	if err := r.ParseForm(); err != nil {
+		return err
+	}
+
+	fromStr := r.FormValue("from")
+	toStr := r.FormValue("to")
+
+	if fromStr != "" {
+		from, err := strconv.ParseFloat(fromStr, 64)
+		if err != nil {
+			return fmt.Errorf("invalid from: %w", err)
+		}
+		req.From = from
+	}
+
+	if toStr != "" {
+		to, err := strconv.ParseFloat(toStr, 64)
+		if err != nil {
+			return fmt.Errorf("invalid to: %w", err)
+		}
+		req.To = to
+	}
+
+	req.All = r.FormValue("all") == "on"
+	req.Force = r.FormValue("force") == "on"
+	return nil
 }
 
 type mangaPageData struct {
@@ -149,28 +178,10 @@ func (m *Manga) Download(w http.ResponseWriter, r *http.Request) {
 	noSwap(w)
 
 	var req RangeRequest
-	if err := r.ParseForm(); err != nil {
+	if err := req.Parse(r); err != nil {
 		writeActionError(w, err)
 		return
 	}
-
-	from, err := strconv.ParseFloat(r.FormValue("from"), 64)
-	if err != nil {
-		writeActionError(w, fmt.Errorf("invalid from: %w", err))
-		return
-	}
-
-	to, err := strconv.ParseFloat(r.FormValue("to"), 64)
-	if err != nil {
-		writeActionError(w, fmt.Errorf("invalid to: %w", err))
-		return
-	}
-
-	req.From = from
-	req.To = to
-
-	req.All = r.FormValue("all") == "on"
-	req.Force = r.FormValue("force") == "on"
 
 	rangeReq := models.ChapterRange{From: req.From, To: req.To, All: req.All, Force: req.Force}
 	sourceID := r.PathValue("sourceID")
@@ -189,28 +200,10 @@ func (m *Manga) Optimize(w http.ResponseWriter, r *http.Request) {
 	noSwap(w)
 
 	var req RangeRequest
-	if err := r.ParseForm(); err != nil {
+	if err := req.Parse(r); err != nil {
 		writeActionError(w, err)
 		return
 	}
-
-	from, err := strconv.ParseFloat(r.FormValue("from"), 64)
-	if err != nil {
-		writeActionError(w, fmt.Errorf("invalid from: %w", err))
-		return
-	}
-
-	to, err := strconv.ParseFloat(r.FormValue("to"), 64)
-	if err != nil {
-		writeActionError(w, fmt.Errorf("invalid to: %w", err))
-		return
-	}
-
-	req.From = from
-	req.To = to
-
-	req.All = r.FormValue("all") == "on"
-	req.Force = r.FormValue("force") == "on"
 
 	rangeReq := models.ChapterRange{From: req.From, To: req.To, All: req.All, Force: req.Force}
 	sourceID := r.PathValue("sourceID")
@@ -229,28 +222,10 @@ func (m *Manga) Pack(w http.ResponseWriter, r *http.Request) {
 	noSwap(w)
 
 	var req RangeRequest
-	if err := r.ParseForm(); err != nil {
+	if err := req.Parse(r); err != nil {
 		writeActionError(w, err)
 		return
 	}
-
-	from, err := strconv.ParseFloat(r.FormValue("from"), 64)
-	if err != nil {
-		writeActionError(w, fmt.Errorf("invalid from: %w", err))
-		return
-	}
-
-	to, err := strconv.ParseFloat(r.FormValue("to"), 64)
-	if err != nil {
-		writeActionError(w, fmt.Errorf("invalid to: %w", err))
-		return
-	}
-
-	req.From = from
-	req.To = to
-
-	req.All = r.FormValue("all") == "on"
-	req.Force = r.FormValue("force") == "on"
 
 	rangeReq := models.ChapterRange{From: req.From, To: req.To, All: req.All, Force: req.Force}
 	sourceID := r.PathValue("sourceID")

@@ -11,9 +11,38 @@
 {{end}}
 {{end}}
 
-{{define "flare-status-partial"}}
-<div id="flare-status" class="flex items-center gap-2 text-xs text-neon-green">
-  <span class="w-2 h-2 rounded-full bg-neon-green animate-pulse inline-block"></span>
-  Running
+{{define "flare-status-partial-running"}}
+<div>
+  <div class="font-mono text-xs text-dim tracking-widest uppercase mb-1">FlareSolver</div>
+  <div id="flare-status" class="flex items-center gap-2 text-xs text-neon-green">
+    <span class="w-2 h-2 rounded-full bg-neon-green animate-pulse inline-block"></span>
+    Running
+  </div>
 </div>
+<button id="flare-btn" class="btn-ghost text-xs text-red-500 border-red-500 hover:text-red-400 hover:border-red-400"
+  hx-post="/api/flaresolver/stop"
+  hx-target="#flare-box"
+  hx-swap="innerHTML"
+  hx-disabled-elt="this"
+  hx-indicator=".htmx-spinner">
+  ⏹ Stop
+</button>
+{{end}}
+
+{{define "flare-status-partial-stopped"}}
+<div>
+  <div class="font-mono text-xs text-dim tracking-widest uppercase mb-1">FlareSolver</div>
+  <div id="flare-status" class="flex items-center gap-2 text-xs text-dim">
+    <span class="w-2 h-2 rounded-full bg-dim inline-block"></span>
+    Stopped
+  </div>
+</div>
+<button id="flare-btn" class="btn-ghost text-xs"
+  hx-post="/api/flaresolver/start"
+  hx-target="#flare-box"
+  hx-swap="innerHTML"
+  hx-disabled-elt="this"
+  hx-indicator=".htmx-spinner">
+  ▶ Start
+</button>
 {{end}}

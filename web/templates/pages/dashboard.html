@@ -51,22 +51,12 @@
 
             {{/* FLARE SOLVER */}}
             <div class="card p-4 mb-6">
-              <div class="flex items-center justify-between">
-                <div>
-                  <div class="font-mono text-xs text-dim tracking-widest uppercase mb-1">FlareSolver</div>
-                  <div id="flare-status" class="flex items-center gap-2 text-xs text-dim">
-                    <span class="w-2 h-2 rounded-full bg-dim inline-block"></span>
-                    Stopped
-                  </div>
-                </div>
-                <button id="flare-btn" class="btn-ghost text-xs"
-                        hx-post="/api/flaresolver/start"
-                        hx-target="#flare-status"
-                        hx-swap="outerHTML"
-                        hx-disabled-elt="this"
-                        hx-indicator=".htmx-spinner">
-                  ▶ Start
-                </button>
+              <div id="flare-box" class="flex items-center justify-between">
+                {{if .IsFlareRunning}}
+                  {{template "flare-status-partial-running" .}}
+                {{else}}
+                  {{template "flare-status-partial-stopped" .}}
+                {{end}}
               </div>
             </div>
 
