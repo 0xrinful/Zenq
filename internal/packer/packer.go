@@ -56,6 +56,11 @@ func (p *Packer) Pack(
 		Number: num,
 	}
 
+	// fullback
+	if strings.TrimSpace(info.Title) == "" {
+		info.Title = info.Number
+	}
+
 	xmlData, err := xml.MarshalIndent(info, "", "  ")
 	if err != nil {
 		return fmt.Errorf("packer: marshal comic info: %w", err)
