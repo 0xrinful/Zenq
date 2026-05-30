@@ -7,6 +7,7 @@ import (
 	"github.com/0xrinful/Zenq/internal/sources"
 	"github.com/0xrinful/Zenq/internal/sources/azora"
 	"github.com/0xrinful/Zenq/internal/sources/mangalek"
+	"github.com/0xrinful/Zenq/internal/sources/teamx"
 )
 
 type Registry struct {
@@ -22,6 +23,7 @@ func NewRegistry(solver *flare.Solver) *Registry {
 
 	r.register(solver, mangalek.Config(), mangalek.New)
 	r.register(solver, azora.Config(), azora.New)
+	r.register(solver, teamx.Config(), teamx.New)
 
 	return r
 }
