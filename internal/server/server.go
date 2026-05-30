@@ -22,10 +22,11 @@ var (
 )
 
 type ActionSection struct {
-	Label    string
-	Endpoint string
-	HasRange bool
-	IsDelete bool
+	Label      string
+	Endpoint   string
+	HasRange   bool
+	IsDelete   bool
+	IsDownload bool
 }
 
 type ChapterRowData struct {
@@ -60,6 +61,12 @@ func actionSections(sourceID, mangaSlug string) []ActionSection {
 		{Label: "Download", Endpoint: base + "/download", HasRange: true},
 		{Label: "Optimize", Endpoint: base + "/optimize", HasRange: true},
 		{Label: "Pack", Endpoint: base + "/pack", HasRange: true},
+		{
+			Label:      "Download as ZIP",
+			Endpoint:   base + "/download/zip",
+			HasRange:   true,
+			IsDownload: true,
+		},
 		{Label: "Chapters", Endpoint: base + "/refresh"},
 		{Label: "Delete Files", Endpoint: base + "/files", IsDelete: true},
 	}

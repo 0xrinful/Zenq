@@ -47,6 +47,7 @@ func routes(s *Server, secret string) *http.ServeMux {
 	mux.Handle("POST /manga/{sourceID}/{slug}/optimize", requireAuth(manga.Optimize))
 	mux.Handle("POST /manga/{sourceID}/{slug}/pack", requireAuth(manga.Pack))
 	mux.Handle("POST /manga/{sourceID}/{slug}/refresh", requireAuth(manga.Refresh))
+	mux.Handle("POST /manga/{sourceID}/{slug}/download/zip", requireAuth(manga.DownloadPacked))
 	mux.Handle("DELETE /manga/{sourceID}/{slug}/files", requireAuth(manga.DeleteFiles))
 	mux.Handle("DELETE /manga/{sourceID}/{slug}/unfavorite", requireAuth(manga.Unfavorite))
 

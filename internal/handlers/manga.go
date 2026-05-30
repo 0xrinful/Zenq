@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -252,6 +253,38 @@ func (m *Manga) Refresh(w http.ResponseWriter, r *http.Request) {
 
 	writeToast(w, "Sync started", "success")
 	w.WriteHeader(http.StatusOK)
+}
+
+func (m *Manga) DownloadPacked(w http.ResponseWriter, r *http.Request) {
+	noSwap(w)
+
+	var req RangeRequest
+	if err := req.Parse(r); err != nil {
+		writeActionError(w, err)
+		return
+	}
+
+	rangeReq := models.ChapterRange{From: req.From, To: req.To, All: req.All, Force: req.Force}
+	sourceID := r.PathValue("sourceID")
+	slug := r.PathValue("slug")
+
+	destZip, err := m.svc.PackManga(r.Context(), sourceID, slug, rangeReq)
+	if err != nil {
+		writeActionError(w, err)
+		return
+	}
+
+	defer func() {
+		if err := os.Remove(destZip); err != nil {
+			slog.Error("failed to remove temp file", "name", destZip, "err", err)
+		}
+	}()
+
+	w.Header().
+		Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q.zip", slug))
+	w.Header().Set("Content-Type", "application/zip")
+
+	http.ServeFile(w, r, destZip)
 }
 
 func (m *Manga) DeleteFiles(w http.ResponseWriter, r *http.Request) {

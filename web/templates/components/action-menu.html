@@ -16,10 +16,11 @@
     {{if .HasRange}}
     <div class="am-section">
       <div class="am-label">{{.Label}}</div>
-      <form
-        hx-post="{{.Endpoint}}"
-        hx-indicator=".htmx-spinner"
-      >
+      {{if .IsDownload}}
+      <form method="POST" action="{{.Endpoint}}">
+      {{else}}
+      <form hx-post="{{.Endpoint}}" hx-indicator=".htmx-spinner">
+        {{end}}
         <div class="am-row">
           <input class="am-input" type="number" name="from" placeholder="from ch." />
           <input class="am-input" type="number" name="to"   placeholder="to ch." />
@@ -28,10 +29,13 @@
           <input type="checkbox" name="all" />
           <span class="am-check-label">All chapters</span>
         </label>
+
+      {{if not .IsDownload}}
         <label class="am-check-row">
           <input type="checkbox" name="force" />
           <span class="am-check-label">Force (re-run)</span>
         </label>
+      {{end}}
         <button type="submit" class="btn-run" hx-disabled-elt="this">
           <i class="ti ti-player-play" style="font-size:13px" aria-hidden="true"></i> Run
         </button>
