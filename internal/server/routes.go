@@ -40,6 +40,10 @@ func routes(s *Server, secret string) *http.ServeMux {
 		return AuthRequired(secret, h)
 	}
 
+	requireAdmin := func(h http.HandlerFunc) http.Handler {
+		return AdminRequired(secret, h)
+	}
+
 	mux.Handle("GET /{$}", requireAuth(library.Index))
 	mux.Handle("GET /manga/{sourceID}/{slug}", requireAuth(manga.Detail))
 	mux.Handle("GET /manga/{sourceID}/{slug}/cover", requireAuth(manga.Cover))
@@ -71,8 +75,8 @@ func routes(s *Server, secret string) *http.ServeMux {
 	mux.Handle("GET /api/jobs", requireAuth(dashboard.Jobs))
 	mux.Handle("GET /api/jobs/{id}", requireAuth(dashboard.JobDetail))
 	mux.Handle("GET /api/storage", requireAuth(dashboard.Storage))
-	mux.Handle("POST /api/flaresolver/start", requireAuth(dashboard.StartFlareSolver))
-	mux.Handle("POST /api/flaresolver/stop", requireAuth(dashboard.StopFlareSolver))
+	mux.Handle("POST /api/flaresolver/start", requireAdmin(dashboard.StartFlareSolver))
+	mux.Handle("POST /api/flaresolver/stop", requireAdmin(dashboard.StopFlareSolver))
 
 	return mux
 }

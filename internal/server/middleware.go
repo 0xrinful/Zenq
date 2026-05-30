@@ -22,6 +22,18 @@ func AuthRequired(secret string, next http.Handler) http.Handler {
 	})
 }
 
+func AdminRequired(secret string, next http.Handler) http.Handler {
+	return AuthRequired(secret, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userID := r.Context().Value(contextkeys.UserID).(int)
+		if userID != 1 {
+			w.Header().Set("X-Toast", `{"message":"this action require an admin","type":"error"}`)
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+		next.ServeHTTP(w, r)
+	}))
+}
+
 type statusWriter struct {
 	http.ResponseWriter
 	status int
