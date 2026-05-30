@@ -12,7 +12,7 @@ import (
 
 const (
 	DefaultURL     = "http://localhost:8191/v1"
-	DefaultTimeout = 180 * time.Second
+	DefaultTimeout = 5 * time.Minute
 )
 
 var ErrSolverFault = errors.New("flare-solver")

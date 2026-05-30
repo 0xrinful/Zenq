@@ -5,6 +5,7 @@ import (
 	"github.com/0xrinful/Zenq/internal/requester"
 	"github.com/0xrinful/Zenq/internal/requester/flare"
 	"github.com/0xrinful/Zenq/internal/sources"
+	"github.com/0xrinful/Zenq/internal/sources/azora"
 	"github.com/0xrinful/Zenq/internal/sources/mangalek"
 )
 
@@ -20,6 +21,7 @@ func NewRegistry(solver *flare.Solver) *Registry {
 	}
 
 	r.register(solver, mangalek.Config(), mangalek.New)
+	r.register(solver, azora.Config(), azora.New)
 
 	return r
 }
