@@ -256,15 +256,24 @@ func (s *Service) DeleteMangaFiles(sourceID, slug string, req DeleteRequest) err
 			if err := os.RemoveAll(s.files.ChapterDir(ch.Chapter)); err != nil {
 				return fmt.Errorf("service: remove raw: %w", err)
 			}
+			if err := s.db.MarkUndownloaded(ch.Chapter); err != nil {
+				return fmt.Errorf("service: mark undownloaded: %w", err)
+			}
 		}
 		if req.Optimized {
 			if err := os.RemoveAll(s.files.OptimizedDir(ch.Chapter)); err != nil {
 				return fmt.Errorf("service: remove optimized: %w", err)
 			}
+			if err := s.db.MarkUnoptimized(ch.Chapter); err != nil {
+				return fmt.Errorf("service: mark unoptimized: %w", err)
+			}
 		}
 		if req.Packed {
 			if err := os.RemoveAll(s.files.CBZPath(ch.Chapter)); err != nil {
 				return fmt.Errorf("service: remove packed: %w", err)
+			}
+			if err := s.db.MarkUnpacked(ch.Chapter); err != nil {
+				return fmt.Errorf("service: mark unpacked: %w", err)
 			}
 		}
 	}

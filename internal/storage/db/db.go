@@ -248,6 +248,39 @@ func (db *DB) MarkPacked(chapter models.Chapter, cbzPath string) error {
 	return err
 }
 
+func (db *DB) MarkUndownloaded(chapter models.Chapter) error {
+	_, err := db.sql.Exec(`
+        UPDATE chapters SET
+            downloaded    = 0,
+            downloaded_at = NULL,
+            raw_path      = NULL
+        WHERE manga_slug = ? AND source_id = ? AND number = ?
+    `, chapter.MangaSlug, chapter.SourceID, chapter.Number)
+	return err
+}
+
+func (db *DB) MarkUnoptimized(chapter models.Chapter) error {
+	_, err := db.sql.Exec(`
+        UPDATE chapters SET
+            optimized      = 0,
+            optimized_at   = NULL,
+            optimized_path = NULL
+        WHERE manga_slug = ? AND source_id = ? AND number = ?
+    `, chapter.MangaSlug, chapter.SourceID, chapter.Number)
+	return err
+}
+
+func (db *DB) MarkUnpacked(chapter models.Chapter) error {
+	_, err := db.sql.Exec(`
+        UPDATE chapters SET
+            packed    = 0,
+            packed_at = NULL,
+            cbz_path  = NULL
+        WHERE manga_slug = ? AND source_id = ? AND number = ?
+    `, chapter.MangaSlug, chapter.SourceID, chapter.Number)
+	return err
+}
+
 // --- Favorites ---
 
 func (db *DB) AddFavorite(userID int, mangaSlug, sourceID string) error {
