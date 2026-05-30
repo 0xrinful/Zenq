@@ -62,9 +62,11 @@ func (s *Source) Latest(ctx context.Context, page, size int) ([]models.Manga, er
 	return mangas, nil
 }
 
-func (s *Source) Search(ctx context.Context, query string) ([]models.Manga, error) {
+func (s *Source) Search(ctx context.Context, query string, page, size int) ([]models.Manga, error) {
 	payload := fmt.Sprintf(
-		"action=madara_load_more&page=0&template=madara-core%%2Fcontent%%2Fcontent-archive&vars%%5Bpost_type%%5D=wp-manga&vars%%5Bpost_status%%5D=publish&vars%%5Bs%%5D=%s",
+		"action=madara_load_more&page=%d&vars%%5Bposts_per_page%%5D=%d&&template=madara-core%%2Fcontent%%2Fcontent-archive&vars%%5Bpost_type%%5D=wp-manga&vars%%5Bpost_status%%5D=publish&vars%%5Bs%%5D=%s",
+		page-1,
+		size,
 		url.QueryEscape(query),
 	)
 

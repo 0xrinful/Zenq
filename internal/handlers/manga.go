@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
@@ -9,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/0xrinful/Zenq/internal/models"
@@ -75,6 +75,21 @@ func (m *Manga) Detail(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (m *Manga) Unfavorite(w http.ResponseWriter, r *http.Request) {
+	sourceID := r.PathValue("sourceID")
+	slug := r.PathValue("slug")
+	userID := getUserID(r.Context())
+
+	err := m.svc.Unfavorite(r.Context(), userID, sourceID, slug)
+	if err != nil {
+		writeActionError(w, err)
+		return
+	}
+
+	w.Header().Set("HX-Redirect", "/")
+	w.WriteHeader(http.StatusOK)
+}
+
 func (m *Manga) Cover(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r.Context())
 	sourceID := r.PathValue("sourceID")
@@ -134,10 +149,28 @@ func (m *Manga) Download(w http.ResponseWriter, r *http.Request) {
 	noSwap(w)
 
 	var req RangeRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := r.ParseForm(); err != nil {
 		writeActionError(w, err)
 		return
 	}
+
+	from, err := strconv.ParseFloat(r.FormValue("from"), 64)
+	if err != nil {
+		writeActionError(w, fmt.Errorf("invalid from: %w", err))
+		return
+	}
+
+	to, err := strconv.ParseFloat(r.FormValue("to"), 64)
+	if err != nil {
+		writeActionError(w, fmt.Errorf("invalid to: %w", err))
+		return
+	}
+
+	req.From = from
+	req.To = to
+
+	req.All = r.FormValue("all") == "on"
+	req.Force = r.FormValue("force") == "on"
 
 	rangeReq := models.ChapterRange{From: req.From, To: req.To, All: req.All, Force: req.Force}
 	sourceID := r.PathValue("sourceID")
@@ -156,10 +189,28 @@ func (m *Manga) Optimize(w http.ResponseWriter, r *http.Request) {
 	noSwap(w)
 
 	var req RangeRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := r.ParseForm(); err != nil {
 		writeActionError(w, err)
 		return
 	}
+
+	from, err := strconv.ParseFloat(r.FormValue("from"), 64)
+	if err != nil {
+		writeActionError(w, fmt.Errorf("invalid from: %w", err))
+		return
+	}
+
+	to, err := strconv.ParseFloat(r.FormValue("to"), 64)
+	if err != nil {
+		writeActionError(w, fmt.Errorf("invalid to: %w", err))
+		return
+	}
+
+	req.From = from
+	req.To = to
+
+	req.All = r.FormValue("all") == "on"
+	req.Force = r.FormValue("force") == "on"
 
 	rangeReq := models.ChapterRange{From: req.From, To: req.To, All: req.All, Force: req.Force}
 	sourceID := r.PathValue("sourceID")
@@ -178,10 +229,28 @@ func (m *Manga) Pack(w http.ResponseWriter, r *http.Request) {
 	noSwap(w)
 
 	var req RangeRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := r.ParseForm(); err != nil {
 		writeActionError(w, err)
 		return
 	}
+
+	from, err := strconv.ParseFloat(r.FormValue("from"), 64)
+	if err != nil {
+		writeActionError(w, fmt.Errorf("invalid from: %w", err))
+		return
+	}
+
+	to, err := strconv.ParseFloat(r.FormValue("to"), 64)
+	if err != nil {
+		writeActionError(w, fmt.Errorf("invalid to: %w", err))
+		return
+	}
+
+	req.From = from
+	req.To = to
+
+	req.All = r.FormValue("all") == "on"
+	req.Force = r.FormValue("force") == "on"
 
 	rangeReq := models.ChapterRange{From: req.From, To: req.To, All: req.All, Force: req.Force}
 	sourceID := r.PathValue("sourceID")
@@ -213,10 +282,15 @@ func (m *Manga) Refresh(w http.ResponseWriter, r *http.Request) {
 func (m *Manga) DeleteFiles(w http.ResponseWriter, r *http.Request) {
 	noSwap(w)
 
-	var req service.DeleteRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := r.ParseForm(); err != nil {
 		writeActionError(w, err)
 		return
+	}
+
+	req := service.DeleteRequest{
+		Raw:       r.FormValue("raw") == "on",
+		Optimized: r.FormValue("optimized") == "on",
+		Packed:    r.FormValue("packed") == "on",
 	}
 
 	sourceID := r.PathValue("sourceID")

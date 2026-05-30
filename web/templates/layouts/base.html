@@ -6,8 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{{block "title" .}}Zenq{{end}}</title>
     <link rel="stylesheet" href="/static/output.css" />
+    <link rel="stylesheet" href="/static/chapter.css" />
     <link rel="manifest" href="/static/manifest.json" />
-    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="/static/htmx.js"></script>
     <script defer src="/static/app.js"></script>
   </head>
   <body class="bg-base text-white font-mono min-h-screen">
@@ -26,7 +27,7 @@
       </aside>
 
       <div class="flex-1 min-w-0">
-        <main class="animate-fade-up px-4 py-6 pb-20 md:pb-6">
+        <main class="animate-fade-up pb-20 md:pb-6">
           {{block "content" .}}{{end}}
         </main>
       </div>

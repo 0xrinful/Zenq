@@ -6,6 +6,7 @@ import (
 	"image"
 	_ "image/jpeg"
 	_ "image/png"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,7 +14,7 @@ import (
 )
 
 const (
-	MaxCwebpDim = 16383
+	MaxCwebpDim = 16380
 	Quality     = 78
 )
 
@@ -34,6 +35,7 @@ func (o *Optimizer) OptimizeChapter(ctx context.Context, chapterDir, optimizedDi
 		file, err := os.Open(inputPath)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("%s (failed to open): %w", p.Name(), err))
+			slog.Error("optimizer failed to open", "name", p.Name(), "err", err)
 			continue
 		}
 		imgConfig, _, err := image.DecodeConfig(file)
@@ -41,43 +43,77 @@ func (o *Optimizer) OptimizeChapter(ctx context.Context, chapterDir, optimizedDi
 
 		if err != nil {
 			errs = append(errs, fmt.Errorf("%s (failed to read dimensions): %w", p.Name(), err))
+			slog.Error("optimizer (failed to read dimensions)", "name", p.Name(), "err", err)
 			continue
 		}
 
 		if imgConfig.Height > MaxCwebpDim || imgConfig.Width > MaxCwebpDim {
-			tmpPattern := filepath.Join(os.TempDir(), "zenq_chunk_%03d.jpg")
+			tmpDir, err := os.MkdirTemp("", "zenq_crop_*")
+			if err != nil {
+				errs = append(
+					errs,
+					fmt.Errorf("failed to create temp dir for %s: %w", p.Name(), err),
+				)
+				continue
+			}
+			defer os.RemoveAll(tmpDir)
+
+			tmpPattern := filepath.Join(tmpDir, "chunk-%03d.jpg")
 			cropCmd := exec.CommandContext(ctx,
 				"magick", inputPath,
-				"-crop",
-				fmt.Sprintf("100%%x%d", MaxCwebpDim),
+				"-crop", fmt.Sprintf("%dx%d", imgConfig.Width, MaxCwebpDim),
 				"+repage",
 				tmpPattern,
 			)
+			slog.Info("crop command", "args", cropCmd.Args)
 
-			if err := cropCmd.Run(); err != nil {
-				errs = append(errs, fmt.Errorf("failed to crop large image %s: %w", p.Name(), err))
+			out, err := cropCmd.CombinedOutput()
+			if err != nil {
+				errs = append(errs, fmt.Errorf("failed to crop %s: %w\n%s", p.Name(), err, out))
+				slog.Error(
+					"optimizer failed to crop",
+					"name", p.Name(),
+					"err", err,
+					"output", string(out),
+				)
 				continue
 			}
 
-			for i := 0; ; i++ {
-				chunkPath := fmt.Sprintf(tmpPattern, i)
-				if _, err := os.Stat(chunkPath); err != nil {
-					break
-				}
+			chunks, err := filepath.Glob(filepath.Join(tmpDir, "chunk-*.jpg"))
+			if err != nil || len(chunks) == 0 {
+				errs = append(errs, fmt.Errorf("no chunks produced for %s", p.Name()))
+				slog.Error("optimizer no chunks produced", "name", p.Name())
+				continue
+			}
+			slog.Info("chunks found", "name", p.Name(), "chunks", chunks)
 
+			for _, chunkPath := range chunks {
 				outputPath := filepath.Join(optimizedDir, fmt.Sprintf("%03d.webp", nextIndex))
 				if err := runCwebp(ctx, chunkPath, outputPath); err != nil {
-					errs = append(errs, fmt.Errorf("%s (chunk %d) failed: %w", p.Name(), i, err))
+					errs = append(
+						errs,
+						fmt.Errorf("%s chunk %s failed: %w", p.Name(), chunkPath, err),
+					)
+					slog.Error(
+						"optimizer failed to run cwebp on chunk",
+						"name", p.Name(),
+						"chunk", chunkPath,
+						"err", err,
+					)
 				} else {
 					nextIndex++
 				}
-				os.Remove(chunkPath)
 			}
 
 		} else {
 			outputPath := filepath.Join(optimizedDir, fmt.Sprintf("%03d.webp", nextIndex))
 			if err := runCwebp(ctx, inputPath, outputPath); err != nil {
 				errs = append(errs, fmt.Errorf("%s: %w", p.Name(), err))
+				slog.Error(
+					"optimizer failed to run cwebp",
+					"name", p.Name(),
+					"err", err,
+				)
 			} else {
 				nextIndex++
 			}
@@ -99,5 +135,11 @@ func runCwebp(ctx context.Context, input, output string) error {
 		input,
 		"-o", output,
 	)
-	return cmd.Run()
+
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("cwebp failed: %w\n%s", err, out)
+	}
+
+	return nil
 }

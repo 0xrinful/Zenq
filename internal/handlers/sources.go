@@ -110,8 +110,16 @@ func (s *Sources) BrowseResults(w http.ResponseWriter, r *http.Request) {
 
 func (s *Sources) Search(w http.ResponseWriter, r *http.Request) {
 	sourceID := r.PathValue("id")
+
+	pageStr := r.URL.Query().Get("page")
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		page = 1
+	}
+	size := 25
+
 	query := r.URL.Query().Get("q")
-	mangas, err := s.svc.SourceSearch(r.Context(), sourceID, query)
+	mangas, err := s.svc.SourceSearch(r.Context(), sourceID, query, page, size)
 	if err != nil {
 		if errors.Is(err, service.ErrUnknownSource) {
 			http.NotFound(w, r)
@@ -124,6 +132,7 @@ func (s *Sources) Search(w http.ResponseWriter, r *http.Request) {
 	renderTemplateName(w, s.templates, "sources.html", "browse-results-partial", browseResultsData{
 		SourceID: sourceID,
 		Mangas:   mangas,
+		Page:     page,
 	})
 }
 
@@ -175,16 +184,17 @@ func (s *Sources) MangaDetail(w http.ResponseWriter, r *http.Request) {
 func (s *Sources) Import(w http.ResponseWriter, r *http.Request) {
 	sourceID := r.PathValue("id")
 	slug := r.PathValue("slug")
+	userID := getUserID(r.Context())
 
-	if err := s.svc.ImportManga(r.Context(), sourceID, slug); err != nil {
+	if err := s.svc.Favorite(r.Context(), userID, sourceID, slug); err != nil {
 		writeActionError(w, err)
 		return
 	}
 
 	writeToast(w, "Imported", "success")
 	w.Header().Set("Content-Type", "text/html")
-	_, _ = w.Write([]byte(fmt.Sprintf(`<div class="flex items-center gap-3">
-  <span class="text-neon-green text-xs font-mono">✓ In Library</span>
-  <a href="/manga/%s/%s" class="btn-ghost text-xs">View →</a>
-</div>`, sourceID, slug)))
+	fmt.Fprintf(w, `
+		<span class="in-library-badge">✓ In Library</span>
+		<a href="/manga/%s/%s" class="btn-view">View →</a>
+		`, sourceID, slug)
 }

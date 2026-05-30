@@ -1,60 +1,52 @@
 {{define "chapter-row"}}
-<div
-  class="group flex items-center justify-between gap-4 px-3 py-2 border-l-2 border-transparent hover:border-neon-blue transition
-    {{if .IsRead}}opacity-45 saturate-[0.3]{{end}}"
->
-  <a
-    href="/manga/{{.SourceID}}/{{.MangaSlug}}/ch/{{.Chapter.Number}}"
-    class="flex-1 pointer-events-none"
-  >
-    <div class="pointer-events-auto">
-      <div class="font-mono text-sm font-medium">Ch. {{.Chapter.Number}}</div>
-      <div class="text-xs text-dim">{{.Chapter.ReleasedAt.Format "2006-01-02"}}</div>
+<div class="ch-row{{if .IsRead}} is-read{{end}}">
+  <span class="read-dot{{if not .IsRead}} unread{{end}}"></span>
+
+  <a href="/manga/{{.SourceID}}/{{.MangaSlug}}/ch/{{.Chapter.Number}}" class="ch-info">
+    <div class="ch-num">
+      Ch. {{.Chapter.Number}}
+      {{if .Chapter.Title}}
+        <span style="font-weight:400;font-size:12px;color:var(--color-text-secondary)">— {{.Chapter.Title}}</span>
+      {{end}}
     </div>
+    <div class="ch-date">{{.Chapter.ReleasedAt.Format "2006-01-02"}}</div>
   </a>
-  <div class="flex items-center gap-2 pointer-events-auto">
+
+  <div class="ch-tags">
     {{if .Chapter.Downloaded}}
-      <span class="tag-d">D</span>
+      <span class="tag tag-d-active" title="Downloaded">D</span>
     {{else}}
-      <span
-        class="tag-d-btn"
+      <span class="tag tag-btn-d" title="Download"
         hx-post="/manga/{{.SourceID}}/{{.MangaSlug}}/ch/{{.Chapter.Number}}/download"
-        hx-target="closest div"
+        hx-target="closest .ch-row"
         hx-swap="outerHTML"
         hx-disabled-elt="this"
-        hx-indicator=".htmx-spinner"
-      >
-        D
-      </span>
+        hx-indicator=".htmx-spinner">D</span>
     {{end}}
+
     {{if .Chapter.Optimized}}
-      <span class="tag-o">O</span>
+      <span class="tag tag-o-active" title="Optimized">O</span>
     {{else}}
-      <span
-        class="tag-o-btn"
+      <span class="tag tag-btn-o" title="Optimize"
         hx-post="/manga/{{.SourceID}}/{{.MangaSlug}}/ch/{{.Chapter.Number}}/optimize"
-        hx-target="closest div"
+        hx-target="closest .ch-row"
         hx-swap="outerHTML"
         hx-disabled-elt="this"
-        hx-indicator=".htmx-spinner"
-      >
-        O
-      </span>
+        hx-indicator=".htmx-spinner">O</span>
     {{end}}
+
     {{if .Chapter.Packed}}
-      <span class="tag-p">P</span>
+      <span class="tag tag-p-active" title="Packed (.cbz)">P</span>
     {{else}}
-      <span
-        class="tag-p-btn"
+      <span class="tag tag-btn-p" title="Pack to .cbz"
         hx-post="/manga/{{.SourceID}}/{{.MangaSlug}}/ch/{{.Chapter.Number}}/pack"
-        hx-target="closest div"
+        hx-target="closest .ch-row"
         hx-swap="outerHTML"
         hx-disabled-elt="this"
-        hx-indicator=".htmx-spinner"
-      >
-        P
-      </span>
+        hx-indicator=".htmx-spinner">P</span>
     {{end}}
   </div>
+
+  <i class="ti ti-chevron-right ch-arrow" aria-hidden="true"></i>
 </div>
 {{end}}

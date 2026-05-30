@@ -21,7 +21,7 @@ type SourceInfo struct {
 type Source interface {
 	Info() SourceInfo
 	Latest(ctx context.Context, page, size int) ([]models.Manga, error)
-	Search(ctx context.Context, query string) ([]models.Manga, error)
+	Search(ctx context.Context, query string, page, size int) ([]models.Manga, error)
 	Manga(ctx context.Context, slug string) (*models.Manga, error)
 	Chapters(ctx context.Context, slug string) ([]models.Chapter, error)
 	Pages(ctx context.Context, chapterURL string) ([]models.Page, error)

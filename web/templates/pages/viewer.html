@@ -6,108 +6,622 @@
     <title>{{.MangaTitle}} — Chapter {{.ChapterNum}}</title>
     <link rel="stylesheet" href="/static/output.css" />
     <script defer src="/static/app.js"></script>
-  </head>
-  <body class="bg-base text-white font-mono min-h-screen">
-    {{/* TOP CHROME */}}
-    <div
-      id="viewer-chrome"
-      class="fixed top-0 left-0 right-0 z-40 bg-surface/95 border-b border-border-dim backdrop-blur transition-all"
-    >
-      <div class="flex items-center justify-between gap-4 px-4 py-3">
-        <div class="flex items-center gap-3 min-w-0">
-          <a href="/manga/{{.SourceID}}/{{.MangaSlug}}" class="btn-ghost text-xs">Back</a>
-          <div class="text-sm font-medium truncate">{{.MangaTitle}}</div>
-        </div>
-        <div class="flex items-center gap-2 text-xs">
-          {{if gt .PrevChapter 0.0}}
-            <a class="btn-ghost text-xs" href="/manga/{{.SourceID}}/{{.MangaSlug}}/ch/{{.PrevChapter}}">Prev</a>
-          {{end}}
-          <span class="text-dim">Ch. {{.ChapterNum}}</span>
-          {{if gt .NextChapter 0.0}}
-            <a class="btn-ghost text-xs" href="/manga/{{.SourceID}}/{{.MangaSlug}}/ch/{{.NextChapter}}">Next</a>
-          {{end}}
-        </div>
-        <button
-          type="button"
-          class="btn-ghost text-xs"
-          onclick="toggleViewerChrome()"
-          aria-label="Toggle viewer controls"
-        >
-          Toggle controls
-        </button>
-      </div>
-      <div class="px-4 pb-4">
-        <div class="flex items-center gap-2">
-          <span class="text-xs text-dim">Jump ({{.TotalChapters}})</span>
-          <select
-            id="chapter-jump"
-            data-base="/manga/{{.SourceID}}/{{.MangaSlug}}/ch/"
-            class="input text-xs max-w-xs"
-          >
-            {{range .ChapterList}}
-              <option
-                value="{{.Number}}"
-                {{if eq .Number $.ChapterNum}}selected{{end}}
-              >
-                Ch. {{.Number}}
-              </option>
-            {{end}}
-          </select>
-        </div>
-      </div>
-    </div>
+    <style>
+      /* ─── Reset & base ─────────────────────────────────────────── */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    <main class="pt-24 pb-10">
-      <div id="viewer-pages" class="flex flex-col items-center gap-4 px-2"></div>
+      :root {
+        --bar-h: 48p;
+        --bar-bg: rgb(15 15 28 / 0.95);
+        --bar-border:  rgb(29, 54, 62);
+        --accent: rgb(0 194 255 / var(--tw-border-opacity, 1));
+        --accent-dim: rgb(8 8 15 / var(--tw-bg-opacity, 1));
+        --txt: #e8e8e8;
+        --txt-dim: #666;
+        --radius: 6px;
+        --transition: 0.22s cubic-bezier(0.4,0,0.2,1);
+      }
+
+      html { scroll-behavior: smooth; }
+
+      body {
+        color: var(--txt);
+        font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+        min-height: 100svh;
+        overflow-x: hidden;
+      }
+
+      /* ─── Top bar ───────────────────────────────────────────────── */
+      #viewer-bar {
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        z-index: 50;
+        height: var(--bar-h);
+        background: var(--bar-bg);
+        border-bottom: 1px solid var(--bar-border);
+        backdrop-filter: blur(12px) saturate(1.4);
+        -webkit-backdrop-filter: blur(12px) saturate(1.4);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 12px;
+        gap: 8px;
+        /* hide/show via transform */
+        transform: translateY(0);
+        transition: transform var(--transition), opacity var(--transition);
+        will-change: transform;
+      }
+
+      #viewer-bar.bar-hidden {
+        transform: translateY(-100%);
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      /* ─── Bar: left cluster ─────────────────────────────────────── */
+      .bar-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        flex: 1;
+      }
+
+      .btn-back {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: var(--txt-dim);
+        text-decoration: none;
+        font-size: 11px;
+        letter-spacing: 0.04em;
+        padding: 4px 8px;
+        border-radius: var(--radius);
+        border: 1px solid transparent;
+        transition: color var(--transition), border-color var(--transition), background var(--transition);
+        flex-shrink: 0;
+        white-space: nowrap;
+      }
+      .btn-back:hover { color: var(--txt); border-color: var(--bar-border); background: rgba(255,255,255,0.05); }
+      .btn-back svg { flex-shrink: 0; }
+
+      .bar-title {
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: var(--txt);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-width: 0;
+      }
+
+      /* ─── Bar: center — chapter nav pill ───────────────────────── */
+      .bar-center {
+        flex-shrink: 0;
+        position: relative;
+      }
+
+      /* The compact trigger pill */
+      .ch-pill {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        height: 30px;
+        border-radius: 3px;
+        border: 1px solid var(--bar-border);
+        background: rgba(255,255,255,0.04);
+        overflow: hidden;
+        font-size: 11px;
+        user-select: none;
+      }
+
+      .ch-nav-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        padding: 0 10px;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .ch-nav-btn.disabled {
+        pointer-events: none;
+      }
+
+      /* The clickable chapter number in the center of the pill */
+      .ch-num-btn {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        height: 100%;
+        padding: 0 10px;
+        background: #16162b;
+        cursor: pointer;
+        border: none;
+        border-left: 1px solid var(--bar-border);
+        border-right: 1px solid var(--bar-border);
+        color: var(--accent);
+        font-family: inherit;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        transition: background var(--transition);
+        white-space: nowrap;
+      }
+      .ch-num-btn svg { transition: transform var(--transition); }
+      .ch-num-btn.open svg { transform: rotate(180deg); }
+
+      /* ─── Chapter dropdown ──────────────────────────────────────── */
+      .ch-dropdown {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 50%;
+        transform: translateX(-50%) translateY(-4px);
+        width: 160px;
+        background: rgb(22 22 37 / var(--tw-bg-opacity, 1));
+        border: 1px solid var(--bar-border);
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.7);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity var(--transition), transform var(--transition);
+        z-index: 60;
+      }
+      .ch-dropdown.open {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      .ch-dropdown-header {
+        padding: 8px 12px 6px;
+        font-size: 9px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--txt-dim);
+        border-bottom: 1px solid var(--bar-border);
+      }
+
+      .ch-dropdown-list {
+        max-height: 240px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255,255,255,0.12) transparent;
+      }
+      .ch-dropdown-list::-webkit-scrollbar { width: 4px; }
+      .ch-dropdown-list::-webkit-scrollbar-track { background: transparent; }
+      .ch-dropdown-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
+
+      .ch-option {
+        display: block;
+        width: 100%;
+        padding: 8px 14px;
+        font-family: inherit;
+        font-size: 12px;
+        color: var(--txt-dim);
+        background: transparent;
+        border: none;
+        text-align: left;
+        cursor: pointer;
+        transition: color var(--transition), background var(--transition);
+        text-decoration: none;
+      }
+      .ch-option:hover { color: var(--txt); background: rgba(255,255,255,0.05); }
+      .ch-option.active {
+        color: var(--accent);
+        background: var(--accent-dim);
+        font-weight: 700;
+      }
+
+      /* ─── Bar: right — page counter ────────────────────────────── */
+      .bar-right {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .page-counter {
+        font-size: 10px;
+        color: var(--txt-dim);
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+        min-width: 52px;
+        text-align: right;
+      }
+      .page-counter span { color: var(--txt); font-weight: 600; }
+
+      /* ─── Progress bar (ultra-thin) ────────────────────────────── */
+      #reading-progress {
+        position: fixed;
+        top: var(--bar-h);
+        left: 0;
+        height: 2px;
+        width: 0%;
+        background: var(--accent);
+        z-index: 49;
+        transition: width 0.1s linear, top var(--transition), opacity var(--transition);
+        box-shadow: 0 0 8px var(--accent);
+      }
+      #reading-progress.bar-hidden-companion {
+        top: 0;
+        opacity: 0.5;
+      }
+
+      /* ─── Main content ──────────────────────────────────────────── */
+      #viewer-pages {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        padding-top: var(--bar-h);  /* exactly the bar height — no extra gap */
+        padding-bottom: 80px;
+      }
+
+      /* Page images */
+      #viewer-pages img {
+        display: block;
+        width: 100%;
+        max-width: 800px;
+        height: auto;
+        cursor: pointer;
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+        transition: opacity 0.3s ease;
+      }
+      #viewer-pages img.loaded { opacity: 1; }
+      /* skeleton shimmer before load */
+      #viewer-pages img:not(.loaded) {
+        min-height: 400px;
+        background: linear-gradient(90deg, #111 25%, #1a1a1a 50%, #111 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.4s infinite;
+      }
+      @keyframes shimmer {
+        0%   { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+      }
+
+      /* ─── Error state ───────────────────────────────────────────── */
+      .load-error {
+        color: #ff5f5f;
+        font-size: 12px;
+        padding: 40px 20px;
+        text-align: center;
+        letter-spacing: 0.05em;
+      }
+
+      /* ─── Chapter end card ──────────────────────────────────────── */
+      #end-card {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        padding: 48px 20px;
+        max-width: 340px;
+        margin: 0 auto;
+        text-align: center;
+      }
+      #end-card.visible { display: flex; }
+      .end-label {
+        font-size: 9px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--txt-dim);
+      }
+      .end-title {
+        font-size: 14px;
+        color: var(--txt);
+        line-height: 1.4;
+      }
+      .end-actions { display: flex; gap: 10px; }
+      .end-btn {
+        padding: 9px 20px;
+        border-radius: var(--radius);
+        font-family: inherit;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all var(--transition);
+        border: 1px solid transparent;
+      }
+      .end-btn-primary {
+        background: var(--accent);
+        color: #080808;
+        border-color: var(--accent);
+      }
+      .end-btn-primary:hover { background: #d4e83c; }
+      .end-btn-ghost {
+        background: transparent;
+        color: var(--txt-dim);
+        border-color: var(--bar-border);
+      }
+      .end-btn-ghost:hover { color: var(--txt); background: rgba(255,255,255,0.05); }
+
+      /* ─── Responsive ────────────────────────────────────────────── */
+      @media (max-width: 520px) {
+        :root { --bar-h: 44px; }
+        .bar-title { display: none; }
+        #viewer-pages { gap: 1px; }
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- TOP BAR -->
+    <header id="viewer-bar">
+      <!-- LEFT: back + title -->
+      <div class="bar-left">
+        <a href="/manga/{{.SourceID}}/{{.MangaSlug}}" class="btn-back" aria-label="Back to manga">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+            <path d="M8 2L4 6L8 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Back
+        </a>
+        <span class="bar-title" title="{{.MangaTitle}}">{{.MangaTitle}}</span>
+      </div>
+
+      <!-- CENTER: chapter navigation pill -->
+      <div class="bar-center">
+        <div class="ch-pill" role="navigation" aria-label="Chapter navigation">
+          <!-- Prev -->
+          {{if gt .PrevChapter 0.0}}
+            <a class="ghost-btn ch-nav-btn" href="/manga/{{.SourceID}}/{{.MangaSlug}}/ch/{{.PrevChapter}}" aria-label="Previous chapter">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                <path d="M6 2L3 5L6 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          {{else}}
+            <span class="ghost-btn ch-nav-btn" aria-disabled="true">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                <path d="M6 2L3 5L6 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          {{end}}
+
+          <!-- Chapter number button (opens dropdown) -->
+          <button class="ch-num-btn" id="ch-trigger" aria-haspopup="listbox" aria-expanded="false" aria-label="Select chapter">
+            Ch. {{.ChapterNum}}
+            <svg width="8" height="8" viewBox="0 0 8 8" fill="none" aria-hidden="true">
+              <path d="M1.5 3L4 5.5L6.5 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+
+          <!-- Next -->
+          {{if gt .NextChapter 0.0}}
+            <a class="ghost-btn ch-nav-btn" href="/manga/{{.SourceID}}/{{.MangaSlug}}/ch/{{.NextChapter}}" aria-label="Next chapter">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                <path d="M4 2L7 5L4 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          {{else}}
+            <span class="ghost-btn ch-nav-btn" aria-disabled="true">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                <path d="M4 2L7 5L4 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          {{end}}
+        </div>
+
+        <!-- Chapter dropdown -->
+        <div class="ch-dropdown" id="ch-dropdown" role="listbox" aria-label="Chapter list">
+          <div class="ch-dropdown-header">{{.TotalChapters}} chapters</div>
+          <div class="ch-dropdown-list" id="ch-list">
+            {{range .ChapterList}}
+              <a
+                class="ch-option {{if eq .Number $.ChapterNum}}active{{end}}"
+                href="/manga/{{$.SourceID}}/{{$.MangaSlug}}/ch/{{.Number}}"
+                role="option"
+                aria-selected="{{if eq .Number $.ChapterNum}}true{{else}}false{{end}}"
+              >Ch. {{.Number}}</a>
+            {{end}}
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: page counter -->
+      <div class="bar-right">
+        <div class="page-counter" id="page-counter" aria-live="polite">—</div>
+      </div>
+    </header>
+
+    <!-- Reading progress bar -->
+    <div id="reading-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+
+    <!-- Pages -->
+    <main>
+      <div id="viewer-pages"></div>
+      <!-- End-of-chapter card -->
+      <div id="end-card" aria-hidden="true">
+        <div class="end-label">End of chapter</div>
+        <div class="end-title">{{.MangaTitle}} — Ch. {{.ChapterNum}}</div>
+        <div class="end-actions">
+          {{if gt .NextChapter 0.0}}
+            <a class="end-btn end-btn-primary" href="/manga/{{.SourceID}}/{{.MangaSlug}}/ch/{{.NextChapter}}">
+              Next
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                <path d="M4 2L7 5L4 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          {{end}}
+          <a class="end-btn end-btn-ghost" href="/manga/{{.SourceID}}/{{.MangaSlug}}">
+            All chapters
+          </a>
+        </div>
+      </div>
     </main>
 
     <script>
-      (function () {
-        const container = document.getElementById("viewer-pages");
-        if (!container) return;
-        const jump = document.getElementById("chapter-jump");
+    (function () {
+      /* ── Elements ──────────────────────────────────────────── */
+      const bar        = document.getElementById('viewer-bar');
+      const progress   = document.getElementById('reading-progress');
+      const container  = document.getElementById('viewer-pages');
+      const endCard    = document.getElementById('end-card');
+      const counter    = document.getElementById('page-counter');
+      const chTrigger  = document.getElementById('ch-trigger');
+      const chDropdown = document.getElementById('ch-dropdown');
+      const chList     = document.getElementById('ch-list');
 
-        if (jump) {
-          const base = jump.dataset.base || "";
-          jump.addEventListener("change", () => {
-            const value = jump.value;
-            if (!base || value === "") return;
-            const number = parseFloat(value);
-            if (!Number.isFinite(number)) return;
-            window.location.assign(base + encodeURIComponent(value));
-          });
+      /* ── Hide-on-scroll bar ────────────────────────────────── */
+      let lastY     = 0;
+      let ticking   = false;
+      let barHidden = false;
+
+      function updateBar() {
+        const y = window.scrollY;
+        const delta = y - lastY;
+
+        // Scroll down > 4px → hide; scroll up → show; near top → always show
+        if (y < 60) {
+          showBar();
+        } else if (delta > 4) {
+          hideBar();
+        } else if (delta < -4) {
+          showBar();
         }
+        lastY = y;
+        ticking = false;
+      }
 
-        fetch("/manga/{{.SourceID}}/{{.MangaSlug}}/ch/{{.ChapterNum}}/pages")
-          .then((res) => {
-            if (!res.ok) throw new Error("Failed to load pages");
-            return res.json();
-          })
-          .then((data) => {
-            (data.urls || []).forEach((url) => {
-              const img = document.createElement("img");
-              img.src = url;
-              img.loading = "lazy";
-              img.decoding = "async";
-              img.className = "w-full max-w-4xl cursor-pointer";
-              img.addEventListener("click", toggleViewerChrome);
-              img.setAttribute("role", "button");
-              img.setAttribute("tabindex", "0");
-              img.setAttribute("aria-label", "Toggle viewer controls");
-              img.addEventListener("keydown", (event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  toggleViewerChrome();
-                }
-              });
-              container.appendChild(img);
+      function hideBar() {
+        if (barHidden) return;
+        barHidden = true;
+        bar.classList.add('bar-hidden');
+        progress.classList.add('bar-hidden-companion');
+      }
+      function showBar() {
+        if (!barHidden) return;
+        barHidden = false;
+        bar.classList.remove('bar-hidden');
+        progress.classList.remove('bar-hidden-companion');
+      }
+
+      window.addEventListener('scroll', function () {
+        if (!ticking) {
+          requestAnimationFrame(updateBar);
+          ticking = true;
+        }
+      }, { passive: true });
+
+      /* ── Reading progress + page counter ──────────────────── */
+      let images = [];
+
+      function updateProgress() {
+        const doc   = document.documentElement;
+        const total = doc.scrollHeight - doc.clientHeight;
+        const pct   = total > 0 ? Math.min(100, (window.scrollY / total) * 100) : 0;
+        progress.style.width = pct + '%';
+        progress.setAttribute('aria-valuenow', Math.round(pct));
+
+        // Find which page is roughly centred in viewport
+        if (images.length) {
+          const mid = window.scrollY + window.innerHeight * 0.45;
+          let cur = 1;
+          for (let i = 0; i < images.length; i++) {
+            const top = images[i].offsetTop;
+            if (top <= mid) cur = i + 1;
+          }
+          counter.innerHTML = '<span>' + cur + '</span> / ' + images.length;
+        }
+      }
+
+      window.addEventListener('scroll', updateProgress, { passive: true });
+
+      /* ── Chapter dropdown ──────────────────────────────────── */
+      let dropOpen = false;
+
+      function openDrop() {
+        dropOpen = true;
+        chDropdown.classList.add('open');
+        chTrigger.classList.add('open');
+        chTrigger.setAttribute('aria-expanded', 'true');
+        // Scroll active option into view
+        const active = chList.querySelector('.active');
+        if (active) active.scrollIntoView({ block: 'nearest' });
+      }
+      function closeDrop() {
+        dropOpen = false;
+        chDropdown.classList.remove('open');
+        chTrigger.classList.remove('open');
+        chTrigger.setAttribute('aria-expanded', 'false');
+      }
+
+      chTrigger.addEventListener('click', function (e) {
+        e.stopPropagation();
+        dropOpen ? closeDrop() : openDrop();
+      });
+
+      document.addEventListener('click', function (e) {
+        if (dropOpen && !chDropdown.contains(e.target) && e.target !== chTrigger) {
+          closeDrop();
+        }
+      });
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && dropOpen) closeDrop();
+      });
+
+      /* ── Load pages ────────────────────────────────────────── */
+      if (!container) return;
+
+      fetch('/manga/{{.SourceID}}/{{.MangaSlug}}/ch/{{.ChapterNum}}/pages')
+        .then(function (res) {
+          if (!res.ok) throw new Error('Failed to load pages');
+          return res.json();
+        })
+        .then(function (data) {
+          const urls = data.urls || [];
+          if (!urls.length) {
+            container.innerHTML = '<div class="load-error">No pages found.</div>';
+            return;
+          }
+
+          urls.forEach(function (url, i) {
+            const img = document.createElement('img');
+            img.src = url;
+            img.loading = i < 3 ? 'eager' : 'lazy';
+            img.decoding = 'async';
+            img.alt = 'Page ' + (i + 1);
+
+            img.addEventListener('load', function () {
+              img.classList.add('loaded');
+              updateProgress();
             });
-          })
-          .catch(() => {
-            container.textContent = "Failed to load pages.";
-            container.classList.add("text-neon-red", "text-xs", "justify-center");
+
+            // Tap to show/hide bar on mobile
+            img.addEventListener('click', function () {
+              barHidden ? showBar() : hideBar();
+            });
+            img.setAttribute('role', 'img');
+
+            container.appendChild(img);
           });
-      })();
+
+          images = Array.from(container.querySelectorAll('img'));
+
+          // Show end-of-chapter card after last image loads
+          const last = images[images.length - 1];
+          last.addEventListener('load', function () {
+            endCard.classList.add('visible');
+            endCard.removeAttribute('aria-hidden');
+          });
+
+          counter.innerHTML = '— / ' + images.length;
+          updateProgress();
+        })
+        .catch(function () {
+          container.innerHTML = '<div class="load-error">Failed to load pages.</div>';
+        });
+
+    })();
     </script>
   </body>
 </html>

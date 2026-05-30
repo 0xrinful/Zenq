@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"log"
@@ -8,8 +9,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/lmittmann/tint"
 
 	"github.com/0xrinful/Zenq/internal/queue"
 	"github.com/0xrinful/Zenq/internal/registry"
@@ -21,6 +24,12 @@ import (
 )
 
 func main() {
+	logger := slog.New(tint.NewHandler(os.Stdout, &tint.Options{
+		Level:      slog.LevelDebug,
+		TimeFormat: time.Kitchen,
+	}))
+	slog.SetDefault(logger)
+
 	if err := godotenv.Load(); err != nil {
 		slog.Warn("No .env file found")
 	}
@@ -67,11 +76,18 @@ func main() {
 	fileStore := files.New(filesRoot)
 	solver := flare.NewSolver()
 	registry := registry.NewRegistry(solver)
-	queue := queue.NewQueue()
-	svc := service.New(registry, database, fileStore, queue)
+	q := queue.NewQueue()
+	svc := service.New(registry, database, fileStore, q)
+
+	worker := queue.NewWorker(q, registry, queue.Config{
+		AutoOptimize: true,
+		AutoPack:     true,
+	}, database, fileStore)
+	worker.Start(context.Background())
 
 	srv := server.New(svc)
 	handler := server.WithLogging(srv)
 
+	slog.Info("server started", "addr", 8000)
 	log.Fatal(http.ListenAndServeTLS(":8000", tlsCertPath, tlsKeyPath, handler))
 }

@@ -47,7 +47,7 @@ type dashboardPageData struct {
 	MangaCount   int
 	RunningCount int
 	Counts       jobCounts
-	InitialJobs  []jobDesc
+	InitialJobs  jobsListData
 }
 
 type storagePartialData struct {
@@ -82,6 +82,11 @@ func buildDescription(j *queue.Job) string {
 	}
 }
 
+type jobsListData struct {
+	Jobs     []jobDesc
+	Expanded int
+}
+
 func (d *Dashboard) Page(w http.ResponseWriter, r *http.Request) {
 	jobs := d.svc.Jobs()
 	counts := countJobs(jobs, "all")
@@ -96,13 +101,14 @@ func (d *Dashboard) Page(w http.ResponseWriter, r *http.Request) {
 		MangaCount:   len(mangas),
 		RunningCount: counts.Running,
 		Counts:       counts,
-		InitialJobs:  describeJobs(jobs),
+		InitialJobs:  jobsListData{Jobs: describeJobs(jobs), Expanded: 0},
 	})
 }
 
 func (d *Dashboard) Jobs(w http.ResponseWriter, r *http.Request) {
 	jobs := d.svc.Jobs()
 	status := strings.TrimSpace(r.URL.Query().Get("status"))
+	expanded, _ := strconv.Atoi(r.URL.Query().Get("expanded"))
 
 	if r.URL.Query().Get("count") != "" {
 		counts := countJobs(jobs, status)
@@ -111,13 +117,10 @@ func (d *Dashboard) Jobs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	filtered := filterJobsByStatus(jobs, status)
-	renderTemplateName(
-		w,
-		d.templates,
-		"dashboard.html",
-		"jobs-list-partial",
-		describeJobs(filtered),
-	)
+	renderTemplateName(w, d.templates, "dashboard.html", "jobs-list-partial", jobsListData{
+		Jobs:     describeJobs(filtered),
+		Expanded: expanded,
+	})
 }
 
 func (d *Dashboard) JobDetail(w http.ResponseWriter, r *http.Request) {

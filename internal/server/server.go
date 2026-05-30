@@ -194,6 +194,15 @@ func New(svc *service.Service) *Server {
 		"randomHeight":   randomHeight,
 		"sub":            func(a, b int) int { return a - b },
 		"add":            func(a, b int) int { return a + b },
+		"countDownloaded": func(chapters []models.ChapterRecord) int {
+			n := 0
+			for _, c := range chapters {
+				if c.Downloaded {
+					n++
+				}
+			}
+			return n
+		},
 	}
 	templatesCache := make(map[string]*template.Template)
 

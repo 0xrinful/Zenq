@@ -43,7 +43,7 @@ type Requester struct {
 
 func New(solver *flare.Solver, cfg sources.Config) *Requester {
 	req := &Requester{
-		client: &http.Client{Timeout: 60 * time.Second},
+		client: &http.Client{Timeout: 180 * time.Second},
 		solver: solver,
 		config: cfg,
 	}

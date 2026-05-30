@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -44,6 +45,7 @@ func (d *Downloader) DownloadChapter(
 				mu.Lock()
 				errs = append(errs, err)
 				mu.Unlock()
+				slog.Error("downloader error", "err", err)
 			}
 		})
 	}

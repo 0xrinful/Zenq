@@ -34,33 +34,63 @@ function showToast({ message, type }) {
 // Action menu toggle
 function toggleActionMenu() {
   const menu = document.getElementById("action-menu");
-  if (!menu) return;
-
-  const isHidden = menu.classList.contains("hidden");
-  menu.classList.toggle("hidden");
-  menu.classList.toggle("opacity-0");
-  menu.classList.toggle("translate-y-1");
-  menu.classList.toggle("pointer-events-none");
-
   const toggle = document.getElementById("action-menu-toggle");
-  if (toggle) toggle.setAttribute("aria-expanded", String(isHidden));
+  if (!menu || !toggle) return;
+
+  const opening = !menu.classList.contains("open");
+  menu.classList.toggle("open", opening);
+  toggle.setAttribute("aria-expanded", String(opening));
 }
 
+document.addEventListener("click", (e) => {
+  const menu = document.getElementById("action-menu");
+  const toggle = document.getElementById("action-menu-toggle");
+  if (!menu || !toggle) return;
+  if (!menu.contains(e.target) && !toggle.contains(e.target)) {
+    menu.classList.remove("open");
+    toggle.setAttribute("aria-expanded", "false");
+  }
+});
+
+document.addEventListener("htmx:afterRequest", (e) => {
+  const menu = document.getElementById("action-menu");
+  if (!menu) return;
+  if (menu.contains(e.target)) {
+    menu.classList.remove("open");
+    const toggle = document.getElementById("action-menu-toggle");
+    if (toggle) toggle.setAttribute("aria-expanded", "false");
+  }
+});
+
+let descOpen = false;
 function toggleDesc() {
-  const desc = document.getElementById("desc");
+  descOpen = !descOpen;
+  const p = document.getElementById("desc");
   const btn = document.getElementById("desc-btn");
-  if (!desc || !btn) return;
-
-  const isClamped = desc.classList.contains("line-clamp-3");
-  desc.classList.toggle("line-clamp-3");
-  btn.textContent = isClamped ? "Show less" : "Show more";
+  if (!p || !btn) return;
+  p.classList.toggle("clamped", !descOpen);
+  btn.textContent = descOpen ? "Show less ↑" : "Show more ↓";
 }
+
+// Hide the "Show more" button if the text is short enough to not overflow
+document.addEventListener("DOMContentLoaded", () => {
+  const p = document.getElementById("desc");
+  const btn = document.getElementById("desc-btn");
+  if (!p || !btn) return;
+  // If clamped height === scroll height, nothing is hidden — no button needed
+  if (p.scrollHeight <= p.clientHeight) {
+    btn.style.display = "none";
+  }
+});
 
 function filterJobs(status) {
   const list = document.getElementById("job-list");
   if (!list) return;
 
-  const url = status === "all" ? "/api/jobs" : "/api/jobs?status=" + encodeURIComponent(status);
+  const url =
+    status === "all"
+      ? "/api/jobs"
+      : "/api/jobs?status=" + encodeURIComponent(status);
   list.setAttribute("hx-get", url);
 
   if (window.htmx) {
@@ -79,20 +109,28 @@ function filterJobs(status) {
   });
 }
 
-function toggleJobDetail(id) {
-  const detail = document.getElementById("detail-" + id);
-  const arrow = document.getElementById("arrow-" + id);
-  if (!detail) return;
+let currentExpanded = 0;
 
-  detail.classList.toggle("hidden");
-  if (arrow) {
-    arrow.style.transform = detail.classList.contains("hidden") ? "" : "rotate(180deg)";
+function openJob(id) {
+  if (currentExpanded === id) {
+    currentExpanded = 0;
+  } else {
+    currentExpanded = id;
   }
 
-  if (!detail.classList.contains("hidden") && window.htmx) {
-    htmx.trigger(detail, "revealed");
-  }
+  const jobList = document.getElementById("job-list");
+  const url = currentExpanded
+    ? `/api/jobs?expanded=${currentExpanded}`
+    : `/api/jobs`;
+
+  htmx.ajax("GET", url, { target: "#job-list", swap: "innerHTML" });
 }
+
+document.addEventListener("htmx:configRequest", (e) => {
+  if (e.target.id === "job-list" && currentExpanded) {
+    e.detail.parameters["expanded"] = currentExpanded;
+  }
+});
 
 // Chapter viewer chrome visibility (used in viewer.html)
 // Called from viewer page only — keep it a named function, not auto-running

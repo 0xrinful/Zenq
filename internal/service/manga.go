@@ -81,12 +81,13 @@ func (s *Service) SourceLatest(
 func (s *Service) SourceSearch(
 	ctx context.Context,
 	sourceID, query string,
+	page, size int,
 ) ([]models.Manga, error) {
 	src, ok := s.registry.Source(sourceID)
 	if !ok {
 		return nil, ErrUnknownSource
 	}
-	return src.Search(ctx, query)
+	return src.Search(ctx, query, page, size)
 }
 
 // SourceManga scrapes a manga from a source and displays it
@@ -350,11 +351,7 @@ func (s *Service) OptimizeChapter(ctx context.Context, chapter models.Chapter) (
 	if ch == nil || !ch.Downloaded {
 		return 0, ErrNotDownloaded
 	}
-
 	destDir := s.files.OptimizedDir(chapter)
-	if err := s.files.EnsureDir(destDir); err != nil {
-		return 0, err
-	}
 
 	jobID := s.queue.Enqueue(&queue.Job{
 		Type:    queue.JobOptimize,

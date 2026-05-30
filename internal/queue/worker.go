@@ -95,6 +95,11 @@ func (w *Worker) process(ctx context.Context, job *Job) {
 		}
 
 	case JobOptimize:
+		if err := w.files.EnsureDir(job.DestDir); err != nil {
+			err = err
+			break
+		}
+
 		err = w.optimizer.OptimizeChapter(ctx, job.SrcDir, job.DestDir)
 		if err == nil {
 			err = w.db.MarkOptimized(job.Chapter, job.DestDir)

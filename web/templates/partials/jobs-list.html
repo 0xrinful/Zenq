@@ -1,31 +1,26 @@
 {{define "jobs-list-partial"}}
-{{if not .}}
+{{if not .Jobs}}
 <div class="px-4 py-8 text-center text-dim text-sm font-mono">No jobs</div>
 {{else}}
-{{range .}}
+{{range .Jobs}}
 <div class="border-b border-border-dim/50 last:border-0 {{jobStatusClass .Status}}">
-  {{/* Main row */}}
   <div class="flex items-center gap-3 px-4 py-3 cursor-pointer group"
-       onclick="toggleJobDetail({{.ID}})">
-    {{/* Status dot */}}
+       onclick="openJob({{.ID}})">
     <span class="w-2 h-2 rounded-full shrink-0 {{jobDotClass .Status}}"></span>
-
-    {{/* Description */}}
     <span class="flex-1 text-sm font-mono truncate">
       <span class="text-dim">#{{.ID}}</span>
       <span class="text-white/80 ml-2">{{.Description}}</span>
     </span>
-
-    {{/* Expand arrow */}}
-    <svg id="arrow-{{.ID}}" class="w-4 h-4 text-dim transition-transform" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+    <svg id="arrow-{{.ID}}" class="w-4 h-4 text-dim transition-transform {{if eq $.Expanded .ID}}rotate-180{{end}}"
+         viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
       <path d="M5 7.5 10 12.5 15 7.5" stroke-linecap="round" stroke-linejoin="round" />
     </svg>
   </div>
-
-  {{/* Detail row — hidden by default */}}
-  <div id="detail-{{.ID}}" class="hidden px-4 pb-3 text-xs text-dim font-mono grid grid-cols-2 gap-1"
-       hx-get="/api/jobs/{{.ID}}" hx-trigger="revealed" hx-swap="innerHTML">
+  {{if eq $.Expanded .ID}}
+  <div class="px-4 pb-3 text-xs text-dim font-mono grid grid-cols-2 gap-1">
+    {{template "job-detail-partial" .}}
   </div>
+  {{end}}
 </div>
 {{end}}
 {{end}}

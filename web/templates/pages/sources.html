@@ -10,8 +10,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{{if .PageTitle}}{{.PageTitle}}{{else}}Zenq{{end}}</title>
     <link rel="stylesheet" href="/static/output.css" />
+    <link rel="stylesheet" href="/static/chapter-source.css" />
     <link rel="manifest" href="/static/manifest.json" />
-    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="/static/htmx.js"></script>
     <script defer src="/static/app.js"></script>
   </head>
   <body class="bg-base text-white font-mono min-h-screen">
@@ -124,78 +125,79 @@
 {{end}}
 
 {{define "source-manga-detail-body"}}
-  <div class="px-4 py-6 md:px-8 max-w-3xl mx-auto">
-    {{/* TOP INFO SECTION */}}
-    <div class="flex gap-4 mb-8">
-      {{/* Cover */}}
-      <img
-        src="{{if .InLibrary}}/manga/{{.SourceID}}/{{.Manga.Slug}}/cover{{else}}{{.Manga.CoverURL}}{{end}}"
-        class="w-28 md:w-40 shrink-0 rounded object-cover self-start"
-        onerror="this.src='/static/cover-placeholder.svg'"
-      />
+<div class="manga-root">
+  <div class="manga-hero">
+    <div class="manga-hero-blur-bg"
+      style="background-image: url('{{if .InLibrary}}/manga/{{.SourceID}}/{{.Manga.Slug}}/cover{{else}}{{.Manga.CoverURL}}{{end}}')">
+    </div>
+    <div class="manga-hero-content">
+      <div class="cover-wrap">
+        <img class="cover-img"
+          src="{{if .InLibrary}}/manga/{{.SourceID}}/{{.Manga.Slug}}/cover{{else}}{{.Manga.CoverURL}}{{end}}"
+          onerror="this.src='/static/cover-placeholder.svg'" />
+      </div>
+      <div class="manga-meta">
+        <h1 class="manga-title">{{.Manga.Title}}</h1>
 
-      {{/* Info */}}
-      <div class="flex flex-col gap-2 flex-1 min-w-0">
-        <div class="flex items-start justify-between gap-2">
-          <h1 class="text-lg md:text-xl font-medium text-white leading-tight">{{.Manga.Title}}</h1>
-
-          {{/* Import button */}}
-          <div class="shrink-0">
-            {{if .InLibrary}}
-              <div class="flex items-center gap-3">
-                <span class="text-neon-green text-xs font-mono">✓ In Library</span>
-                <a href="/manga/{{.SourceID}}/{{.Manga.Slug}}" class="btn-ghost text-xs">View →</a>
-              </div>
-            {{else}}
-              <button
-                class="btn-primary text-xs"
-                hx-post="/sources/{{.SourceID}}/manga/{{.Manga.Slug}}/import"
-                hx-target="this"
-                hx-swap="outerHTML"
-                hx-disabled-elt="this"
-                hx-indicator=".htmx-spinner"
-              >
-                Import
-              </button>
+        <div class="manga-badges">
+          {{if .Manga.Status}}
+            <span class="badge badge-{{.Manga.Status}}">{{.Manga.Status}}</span>
+          {{end}}
+          {{if .Manga.Chapters}}
+            {{$n := len .Manga.Chapters}}
+            {{if gt $n 0}}
+              <span class="badge badge-chapters">{{$n}} ch</span>
             {{end}}
-          </div>
+          {{end}}
         </div>
 
-        {{/* Status badge */}}
-        {{if .Manga.Status}}
-          <span
-            class="text-xs font-mono px-2 py-0.5 rounded border w-fit
-              {{if eq .Manga.Status "ongoing"}}border-neon-green text-neon-green{{end}}
-              {{if eq .Manga.Status "completed"}}border-neon-violet text-neon-violet{{end}}
-              {{if eq .Manga.Status "hiatus"}}border-neon-amber text-neon-amber{{end}}"
-          >
-            {{.Manga.Status}}
-          </span>
-        {{end}}
-
-        {{/* Description — collapsible */}}
         {{if .Manga.Description}}
-          <div class="relative">
-            <p id="desc" class="text-sm text-dim leading-relaxed line-clamp-3">
-              {{.Manga.Description}}
-            </p>
-            <button onclick="toggleDesc()" class="text-xs text-neon-blue mt-1" id="desc-btn" type="button">
-              Show more
+          <div>
+            <p id="desc" class="manga-desc clamped">{{.Manga.Description}}</p>
+            <button id="desc-btn" class="desc-toggle" onclick="toggleDesc()" type="button">
+              Show more ↓
             </button>
           </div>
         {{end}}
 
-        {{/* Genres */}}
         {{if .Manga.Genres}}
-          <div class="flex flex-wrap gap-1 mt-1">
+          <div class="genres-row">
             {{range .Manga.Genres}}
-              <span class="text-xs border border-border-dim text-dim px-2 py-0.5 rounded">{{.}}</span>
+              <span class="genre-tag">{{.}}</span>
             {{end}}
           </div>
         {{end}}
+
+        <div class="manga-actions">
+          {{if .InLibrary}}
+            <span class="in-library-badge">✓ In Library</span>
+            <a href="/manga/{{.SourceID}}/{{.Manga.Slug}}" class="btn-view">View →</a>
+          {{else}}
+            <button class="btn-import"
+              hx-post="/sources/{{.SourceID}}/manga/{{.Manga.Slug}}/import"
+              hx-target="this" hx-swap="outerHTML" hx-disabled-elt="this">
+              Import
+            </button>
+          {{end}}
+        </div>
       </div>
     </div>
   </div>
+
+  {{/* ── CHAPTERS ─────────────────────────────────── */}}
+  {{if .Manga.Chapters}}
+    {{$n := len .Manga.Chapters}}
+    {{if gt $n 0}}
+      <div class="chapters-section">
+        <div class="chapters-header">
+          <p class="chapters-title">Chapters</p>
+          <span class="chapters-count">{{$n}}</span>
+        </div>
+      </div>
+    {{end}}
+  {{end}}
+
+</div>
 {{end}}
 
 {{define "browse-results-partial"}}
