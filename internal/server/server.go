@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"path/filepath"
 	"reflect"
+	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/0xrinful/Zenq/internal/models"
@@ -190,17 +192,28 @@ func randomHeight() int {
 	return 180 + rand.Intn(180)
 }
 
+func shouldShowTitle(ch models.ChapterRecord) bool {
+	title := strings.TrimSpace(ch.Title)
+
+	if title == "" {
+		return false
+	}
+
+	return title != strconv.FormatFloat(ch.Number, 'f', -1, 64)
+}
+
 func New(svc *service.Service) *Server {
 	funcMap := template.FuncMap{
-		"actionSections": actionSections,
-		"chapterRowData": chapterRowData,
-		"jobStatusClass": jobStatusClass,
-		"jobDotClass":    jobDotClass,
-		"jobFilters":     jobFilters,
-		"times":          times,
-		"randomHeight":   randomHeight,
-		"sub":            func(a, b int) int { return a - b },
-		"add":            func(a, b int) int { return a + b },
+		"actionSections":  actionSections,
+		"chapterRowData":  chapterRowData,
+		"shouldShowTitle": shouldShowTitle,
+		"jobStatusClass":  jobStatusClass,
+		"jobDotClass":     jobDotClass,
+		"jobFilters":      jobFilters,
+		"times":           times,
+		"randomHeight":    randomHeight,
+		"sub":             func(a, b int) int { return a - b },
+		"add":             func(a, b int) int { return a + b },
 		"countDownloaded": func(chapters []models.ChapterRecord) int {
 			n := 0
 			for _, c := range chapters {
