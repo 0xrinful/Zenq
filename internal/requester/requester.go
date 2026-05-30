@@ -214,7 +214,7 @@ func (r *Requester) refreshSessionLoop(ctx context.Context) {
 
 	run()
 
-	ticker := time.NewTicker(5 * time.Minute)
+	ticker := time.NewTicker(10 * time.Minute)
 	defer ticker.Stop()
 
 	for {
